@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pothos Lexer</title>
+  <script type="module" crossorigin src="./assets/index-BwZ3MDpW.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BHCinSul.css">
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <div class="logo-wrapper">
+                <img id="themeLogo" src="./assets/logo_dark-DeIAgQ13.png" alt="Pothos Lexer" height="64">
+                <h1> Pothos Lexer</h1>
+            </div>
+            <div class="buttonTray">
+                <button class="run" id="rubBtn">
+                    <span class="material-icons">
+                        play_arrow
+                    </span>
+                    <span class="btnLabel">Run</span>
+                </button>
+                <button class="theme" id="themeBtn">
+                    <span class="material-icons">
+                        dark_mode
+                    </span>
+                </button>
+            </div>
+        </div>
+    </header>
+    <div class="container-folder">
+        <div class="container mobile-fold">
+            <div class="card" id="codebox">
+                <div id="editor" aria-label="Source code editor"></div>
+            </div>
+            <div class="right-bottom">
+                <div class="card" id="lexerbox" autocorrect="off" auto>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Lexeme</th>
+                                <th>Token</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="3">No Data</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card" id="errorBox">
+                    <code>No errors found.</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,124 @@
+{
+  "name": "Pothos",
+  "fileExtension": ".pths",
+  "caseSensitive": true,
+  "keywords": [
+    "strina", "wharfa", "trua", "lis",
+    "glossare","prin","inpub", "formo", "innum",
+    "Trua", "Inaccu", "an", "othan", "neve",
+    "belial", "belsa", "elsa", "lood","cycla",
+    "paus", "persis", "reor", "deleo", "insid",
+    "const", "pas"
+  ],
+  "operators": {
+    "arithmetic": ["+", "-", "*", "/", "%"],
+    "relational": ["==", "!=", "<", "<=", ">", ">="],
+    "assignment": ["=", "+=", "-=", "*=", "/=", "%="],
+    "logical": ["an", "othan", "neve"],
+    "membership": ["insid"]
+  },
+  "comments": {
+    "lineComment": "--",
+    "blockCommentStart": "/--",
+    "blockCommentEnd": "--/"
+  },
+  "constraints": {
+    "identifier": {
+      "minLengthVariable": 1,
+      "minLengthFunction": 3,
+      "maxLength": 20,
+      "regex": "[a-zA-Z][a-zA-Z0-9_]*"
+    },
+    "wharfaLiteral": {
+      "maxDigits": 8,
+      "minValue": -99999999,
+      "maxValue": 99999999
+    },
+    "recursionDepthMax": 999
+  },
+  "syntax": {
+    "reservedWords": [
+      "strina",
+      "wharfa",
+      "trua",
+      "lis",
+      "glossare",
+      "prin",
+      "inpub",
+      "formo",
+      "innum",
+      "Trua",
+      "Inaccu",
+      "an",
+      "othan",
+      "neve",
+      "belial",
+      "belsa",
+      "elsa",
+      "lood",
+      "cycla",
+      "paus",
+      "persis",
+      "reor",
+      "deleo",
+      "insid",
+      "const",
+      "pas"
+    ],
+    "literals": {
+      "booleans": ["true", "false"],
+      "null": ["null", "nil"]
+    },
+    "symbols": [
+      "+",
+      "-",
+      "*",
+      "/",
+      "%",
+      "==",
+      "!=",
+      "<",
+      "<=",
+      ">",
+      ">=",
+      "=",
+      "+=",
+      "-=",
+      "*=",
+      "/=",
+      "%=",
+      "&&",
+      "||",
+      "!",
+      ":",
+      "."
+    ],
+    "delimiters": {
+      "separators": [",", ";", "(", ")", "[", "]", "{", "}"],
+      "pairs": [
+        { "open": "(", "close": ")" },
+        { "open": "[", "close": "]" },
+        { "open": "{", "close": "}" }
+      ]
+    },
+    "comments": {
+      "line": "--",
+      "block": {
+        "open": "/--",
+        "close": "--/"
+      }
+    },
+    "strings": {
+      "quotes": ["\"", "'"],
+      "escape": "\\"
+    }
+  },
+  "theme": {
+    "reservedWord": "#c678dd",
+    "symbol": "#56b6c2",
+    "delimiter": "#e5c07b",
+    "string": "#98c379",
+    "number": "#d19a66",
+    "comment": "#5c6370"
+  }
+}
