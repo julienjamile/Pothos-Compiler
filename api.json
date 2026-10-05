@@ -1,0 +1,33 @@
+{
+  "tokens": [
+    { "no": 1, "lexeme": "int", "token": "int" },
+    { "no": 2, "lexeme": "_", "token": "space" },
+    { "no": 3, "lexeme": "a", "token": "iden" },
+    { "no": 4, "lexeme": ",", "token": "," },
+    { "no": 5, "lexeme": "b", "token": "iden" },
+    { "no": 6, "lexeme": ";", "token": ";" },
+    { "no": 7, "lexeme": "newline", "token": "newline" },
+    { "no": 8, "lexeme": "float", "token": "float" },
+    { "no": 9, "lexeme": "_", "token": "space" },
+    { "no": 10, "lexeme": "f", "token": "iden" },
+    { "no": 11, "lexeme": ";", "token": ";" },
+    { "no": 12, "lexeme": "...", "token": "" },
+    { "no": 13, "lexeme": "printf", "token": "printf" },
+    { "no": 14, "lexeme": "(", "token": "(" },
+    { "no": 15, "lexeme": "\"Hello World\"", "token": "stringlit" },
+    { "no": 16, "lexeme": ")", "token": ")" },
+    { "no": 17, "lexeme": ";", "token": ";" }
+  ],
+  "errors": [
+    {
+      "line": 5,
+      "column": 1,
+      "message": "Unexpected token 'b'; expected an operator."
+    },
+    {
+      "line": 6,
+      "column": 1,
+      "message": "Unexpected token 'b'; expected an operator."
+    }
+  ]
+}
