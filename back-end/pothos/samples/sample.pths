@@ -1,0 +1,12 @@
+/-- Pothos sample program (I. Structure Overview) --/
+msg = "Hello, World!";
+prin(msg);
+
+wharfa add(wharfa a, wharfa b){
+   reor a + b;
+};
+prin(add(3, 4));   -- prints 7
+
+nums = [1, 2, 3]; m = 0;
+lood (m insid nums) { prin(m); }
+belial (m >= 2) { prin('done\n'); } elsa { pas; }

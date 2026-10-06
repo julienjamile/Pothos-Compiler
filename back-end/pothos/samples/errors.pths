@@ -1,0 +1,12 @@
+-- every line below has a lexical error
+studentRegistrationNumber2026 = 1;
+x = 100000000;
+w = 1.5;
+_age = 2;
+total$ = 3;
+bad4 = "Hi\x";
+prin"Hello";
+belial{ x = 1; }
+bad1 = "Hello;
+--/ stray closer
+/-- missing closer
