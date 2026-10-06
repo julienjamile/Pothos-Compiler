@@ -211,6 +211,14 @@ body {
     background: color-mix(in srgb, var(--font-color) 8%, transparent);
 }
 
+#lexerbox table tbody tr[data-start] {
+    cursor: pointer;
+}
+
+#lexerbox table tbody tr.is-active {
+    background: color-mix(in srgb, var(--run-button-color) 24%, var(--bg-lv-1));
+}
+
 .right-bottom {
     display: flex;
     flex-direction: column;

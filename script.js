@@ -22,6 +22,8 @@ const lexerTableHead = document.querySelector("#lexerbox thead tr");
 const errorOutput = document.querySelector("#errorBox code");
 const themeCompartment = new Compartment();
 const sourceStorageKey = "pothos-lexer-source";
+let tokenRanges = [];
+let activeTokenRows = new Set();
 const syntax = mireLanguage.syntax;
 const reservedWords = new Set(syntax.reservedWords);
 const booleans = new Set(syntax.literals.booleans);
@@ -135,6 +137,33 @@ function showNetworkError(error) {
     errorOutput.textContent = `Request failed: ${error.message || String(error)}`;
 }
 
+function getTokenRange(lineStarts, sourceLines, line, column, lexeme) {
+    const lineIndex = Number(line) - 1;
+    if (!Number.isInteger(lineIndex) || lineIndex < 0 || lineIndex >= sourceLines.length) return null;
+
+    const columnIndex = Number(column) - 1;
+    if (!Number.isInteger(columnIndex) || columnIndex < 0) return null;
+
+    const characterOffset = Array.from(sourceLines[lineIndex]).slice(0, columnIndex).join("").length;
+    const start = lineStarts[lineIndex] + characterOffset;
+    const end = start + Array.from(String(lexeme)).join("").length;
+    return { start, end };
+}
+
+function setActiveTokenRows(rows, scrollRow = null) {
+    const nextRows = new Set(rows.filter(Boolean));
+    activeTokenRows.forEach((row) => {
+        if (!nextRows.has(row)) row.classList.remove("is-active");
+    });
+    nextRows.forEach((row) => {
+        if (!activeTokenRows.has(row)) row.classList.add("is-active");
+    });
+    activeTokenRows = nextRows;
+    if (scrollRow && nextRows.has(scrollRow)) {
+        scrollRow.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+}
+
 const editorTheme = (dark) => EditorView.theme({
     "&": {
         height: "100%",
@@ -168,7 +197,40 @@ const editor = editorHost
             mireLanguageSupport,
             syntaxHighlighting(mireHighlightStyle),
             themeCompartment.of(editorTheme(htmlElement.dataset.theme === "dark")),
+            EditorView.domEventHandlers({
+                mousemove(event, view) {
+                    if (view.state.selection.ranges.some(({ empty }) => !empty)) return false;
+
+                    const position = view.posAtCoords({ x: event.clientX, y: event.clientY });
+                    if (position === null) return false;
+
+                    const range = tokenRanges.find(({ start, end }) => position >= start && position < end)
+                        ?? tokenRanges.find(({ start, end }) => position === end && end > start);
+                    setActiveTokenRows(range ? [range.row] : [], range?.row ?? null);
+                    return false;
+                },
+                mouseleave(_event, view) {
+                    if (view.state.selection.ranges.some(({ empty }) => !empty)) return false;
+                    setActiveTokenRows([]);
+                    return false;
+                },
+            }),
             EditorView.updateListener.of((update) => {
+                if (update.selectionSet) {
+                    const selections = update.state.selection.ranges.filter(({ empty }) => !empty);
+                    if (selections.length) {
+                        const selectedRanges = tokenRanges.filter(({ start, end }) =>
+                            selections.some((selection) => start < selection.to && end > selection.from));
+                        const mainSelection = update.state.selection.main;
+                        const primaryRange = selectedRanges.find(({ start, end }) =>
+                            mainSelection.head >= start && mainSelection.head < end)
+                            ?? selectedRanges.find(({ end }) => mainSelection.head === end);
+                        const rows = selectedRanges.map(({ row }) => row);
+                        setActiveTokenRows(rows, primaryRange?.row ?? rows.at(-1));
+                    } else {
+                        setActiveTokenRows([]);
+                    }
+                }
                 if (!update.docChanged) return;
                 try {
                     localStorage.setItem(sourceStorageKey, update.state.doc.toString());
@@ -180,6 +242,24 @@ const editor = editorHost
         doc: readSavedSource(),
     })
     : null;
+
+if (lexerTableBody && editor) {
+    lexerTableBody.addEventListener("click", (event) => {
+        const row = event.target.closest("tr[data-start]");
+        if (!row || !lexerTableBody.contains(row)) return;
+
+        const start = Number(row.dataset.start);
+        const end = Number(row.dataset.end);
+        const docLength = editor.state.doc.length;
+        const boundedStart = Math.min(start, docLength);
+        editor.focus();
+        editor.dispatch({
+            selection: { anchor: boundedStart, head: Math.min(end, docLength) },
+            effects: EditorView.scrollIntoView(boundedStart, { y: "center" }),
+        });
+        setActiveTokenRows([row], row);
+    });
+}
 
 /** Rebuild the table header to show/hide the optional Path column. */
 function setTableColumns(showPath) {
@@ -195,6 +275,14 @@ if (runBtn) {
 
         const skipComments = skipCommentsChk ? skipCommentsChk.checked : false;
         const trace = traceChk ? traceChk.checked : false;
+        const source = editor.state.doc.toString();
+        const sourceLines = source.split("\n");
+        const lineStarts = [];
+        let sourceOffset = 0;
+        sourceLines.forEach((line) => {
+            lineStarts.push(sourceOffset);
+            sourceOffset += line.length + 1;
+        });
 
         runBtn.disabled = true;
         try {
@@ -202,7 +290,7 @@ if (runBtn) {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    code: editor.state.doc.toString(),
+                    code: source,
                     skipComments,
                     trace,
                 }),
@@ -227,12 +315,20 @@ if (runBtn) {
 
             if (lexerTableBody && Array.isArray(tokens)) {
                 lexerTableBody.replaceChildren();
+                tokenRanges = [];
+                setActiveTokenRows([]);
                 if (tokens.length === 0) {
                     const colSpan = trace ? 6 : 5;
                     lexerTableBody.innerHTML = `<tr><td colspan="${colSpan}">No tokens</td></tr>`;
                 } else {
                     tokens.forEach(({ no, lexeme, token, line, column, path }) => {
                         const row = document.createElement("tr");
+                        const range = getTokenRange(lineStarts, sourceLines, line, column, lexeme);
+                        if (range) {
+                            row.dataset.start = String(range.start);
+                            row.dataset.end = String(range.end);
+                            tokenRanges.push({ ...range, row });
+                        }
                         const cells = [no, lexeme, token, line, column];
                         if (trace) cells.push(path ?? "");
                         cells.forEach((value) => {
