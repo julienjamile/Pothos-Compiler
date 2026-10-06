@@ -14,8 +14,11 @@ const htmlElement = document.documentElement;
 const editorHost = document.getElementById("editor");
 const themeBtn = document.getElementById("themeBtn");
 const themeLogo = document.getElementById("themeLogo");
-const runBtn = document.getElementById("rubBtn");
+const runBtn = document.getElementById("runBtn");          // renamed from rubBtn
+const skipCommentsChk = document.getElementById("skipCommentsChk");
+const traceChk = document.getElementById("traceChk");
 const lexerTableBody = document.querySelector("#lexerbox tbody");
+const lexerTableHead = document.querySelector("#lexerbox thead tr");
 const errorOutput = document.querySelector("#errorBox code");
 const themeCompartment = new Compartment();
 const sourceStorageKey = "pothos-lexer-source";
@@ -101,11 +104,35 @@ function readSavedSource() {
     }
 }
 
+/**
+ * showErrors – render the errors array into #errorBox.
+ *
+ * Each error dict has { phase, line, column, message, text }.
+ * Format: "Lexical Error [line L, col C]: message"  (matches the CLI format).
+ */
 function showErrors(errors) {
     if (!errorOutput) return;
-    errorOutput.textContent = Array.isArray(errors) && errors.length
-        ? errors.map(({ line, column, message }) => `Line ${line}, column ${column}: ${message}`).join("\n")
-        : "No errors found.";
+    if (Array.isArray(errors) && errors.length) {
+        errorOutput.textContent = errors
+            .map(({ phase, line, column, message }) => {
+                const phaseLabel = phase
+                    ? phase.charAt(0).toUpperCase() + phase.slice(1) + " Error"
+                    : "Error";
+                return `${phaseLabel} [line ${line}, col ${column}]: ${message}`;
+            })
+            .join("\n");
+    } else {
+        errorOutput.textContent = "No errors found.";
+    }
+}
+
+/**
+ * showNetworkError – show a raw fetch/network error without falling back to
+ * the fake sample data.
+ */
+function showNetworkError(error) {
+    if (!errorOutput) return;
+    errorOutput.textContent = `Request failed: ${error.message || String(error)}`;
 }
 
 const editorTheme = (dark) => EditorView.theme({
@@ -154,50 +181,76 @@ const editor = editorHost
     })
     : null;
 
+/** Rebuild the table header to show/hide the optional Path column. */
+function setTableColumns(showPath) {
+    if (!lexerTableHead) return;
+    const base = ["No.", "Lexeme", "Token", "Line", "Col"];
+    if (showPath) base.push("Path");
+    lexerTableHead.innerHTML = base.map((h) => `<th>${h}</th>`).join("");
+}
+
 if (runBtn) {
     runBtn.addEventListener("click", async () => {
         if (!editor) return;
+
+        const skipComments = skipCommentsChk ? skipCommentsChk.checked : false;
+        const trace = traceChk ? traceChk.checked : false;
 
         runBtn.disabled = true;
         try {
             const response = await fetch("./api.json", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code: editor.state.doc.toString() }),
+                body: JSON.stringify({
+                    code: editor.state.doc.toString(),
+                    skipComments,
+                    trace,
+                }),
             });
 
+            const result = await response.json();
+
             if (!response.ok) {
-                throw new Error(`Request failed: ${response.status}`);
+                // HTTP 400 / 413 – the backend returned {"error": "..."}
+                const msg = result.error || `HTTP ${response.status}`;
+                showNetworkError(new Error(msg));
+                if (lexerTableBody) {
+                    const colSpan = trace ? 6 : 5;
+                    lexerTableBody.innerHTML = `<tr><td colspan="${colSpan}">Request error</td></tr>`;
+                }
+                return;
             }
 
-            const result = await response.json();
             const tokens = Array.isArray(result) ? result : result.tokens;
             showErrors(result.errors);
+            setTableColumns(trace);
+
             if (lexerTableBody && Array.isArray(tokens)) {
                 lexerTableBody.replaceChildren();
-                tokens.forEach(({ no, lexeme, token }) => {
-                    const row = document.createElement("tr");
-                    [no, lexeme, token].forEach((value) => {
-                        const cell = document.createElement("td");
-                        cell.textContent = String(value ?? "");
-                        row.append(cell);
+                if (tokens.length === 0) {
+                    const colSpan = trace ? 6 : 5;
+                    lexerTableBody.innerHTML = `<tr><td colspan="${colSpan}">No tokens</td></tr>`;
+                } else {
+                    tokens.forEach(({ no, lexeme, token, line, column, path }) => {
+                        const row = document.createElement("tr");
+                        const cells = [no, lexeme, token, line, column];
+                        if (trace) cells.push(path ?? "");
+                        cells.forEach((value) => {
+                            const cell = document.createElement("td");
+                            cell.textContent = String(value ?? "");
+                            row.append(cell);
+                        });
+                        lexerTableBody.append(row);
                     });
-                    lexerTableBody.append(row);
-                });
+                }
             }
         } catch (error) {
+            // Network / parse failure – show the real error, no fake fallback.
             console.error("Could not submit source code:", error);
-            try {
-                // Load the sample response on demand so the example error is visible.
-                const sampleResponse = await fetch("./api.json");
-                if (!sampleResponse.ok) throw new Error(`Request failed: ${sampleResponse.status}`);
-                const sample = await sampleResponse.json();
-                showErrors(sample.errors);
-            } catch (sampleError) {
-                showErrors([{ line: "—", column: "—", message: error.message || "Could not submit source code." }]);
-            }
+            showNetworkError(error);
             if (lexerTableBody) {
-                lexerTableBody.innerHTML = '<tr><td colspan="3">Could not submit source code</td></tr>';
+                const colSpan = trace ? 6 : 5;
+                lexerTableBody.innerHTML = `<tr><td colspan="${colSpan}">Could not submit source code</td></tr>`;
             }
         } finally {
             runBtn.disabled = false;

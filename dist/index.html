@@ -4,9 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pothos Lexer</title>
-  <script type="module" crossorigin src="./assets/index-jSinP1Ox.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-C6hqwwca.css">
+    <title>Pothos Lexer – Pothos Compiler</title>
+    <meta name="description" content="Pothos lexical analyzer: paste Pothos source code and inspect tokens, lexical errors, and TD state paths interactively.">
+  <script type="module" crossorigin src="./assets/index-Dv5OHjeO.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BTfeosE8.css">
 </head>
 
 <body>
@@ -17,7 +18,13 @@
                 <h1> Pothos Lexer</h1>
             </div>
             <div class="buttonTray">
-                <button class="run" id="rubBtn">
+                <label class="option-label" title="Remove comment tokens from the output">
+                    <input type="checkbox" id="skipCommentsChk"> Hide comments
+                </label>
+                <label class="option-label" title="Show the TD state path for each token">
+                    <input type="checkbox" id="traceChk"> Show TD states
+                </label>
+                <button class="run" id="runBtn">
                     <span class="material-icons">
                         play_arrow
                     </span>
@@ -37,18 +44,20 @@
                 <div id="editor" aria-label="Source code editor"></div>
             </div>
             <div class="right-bottom">
-                <div class="card" id="lexerbox" autocorrect="off" auto>
+                <div class="card" id="lexerbox" autocorrect="off">
                     <table>
                         <thead>
                             <tr>
                                 <th>No.</th>
                                 <th>Lexeme</th>
                                 <th>Token</th>
+                                <th>Line</th>
+                                <th>Col</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td colspan="3">No Data</td>
+                                <td colspan="5">No Data</td>
                             </tr>
                         </tbody>
                     </table>
