@@ -4,3 +4,5 @@ To use #frontend, expose /dist/* to `http://ip-address/`,
         POST -> Backend receives user code.
             Adjust frontend code freely, bundle frontend code using `npm run build`.
             AI Generated python flask environment for demo only. Test using .venv/bin/python app.py
+
+To update frontend, run 'npm install' first to retrieve dependencies.
