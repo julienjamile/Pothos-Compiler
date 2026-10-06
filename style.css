@@ -223,6 +223,7 @@ body {
 
 #errorBox {
     flex: 0.5 1 0;
+    overflow: scroll;
 }
 
 #errorBox code {
