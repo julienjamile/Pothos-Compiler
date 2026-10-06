@@ -6,3 +6,9 @@ To use #frontend, expose /dist/* to `http://ip-address/`,
             AI Generated python flask environment for demo only. Test using .venv/bin/python app.py
 
 To update frontend, run 'npm install' first to retrieve dependencies.
+
+
+Use the commands to setup venv and flask
+    python -m venv .venv
+    .venv/bin/pip install flask
+    .venv/bin/python app.py

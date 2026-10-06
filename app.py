@@ -13,7 +13,7 @@ def index():
     return send_from_directory(DIST, "index.html")
 
 
-@app.get("/api.json")
+@app.route("/api.json", methods=['GET', 'POST'])
 def api_json():
     return send_from_directory(ROOT, "api.json")
 
