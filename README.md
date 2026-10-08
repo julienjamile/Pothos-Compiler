@@ -49,14 +49,20 @@ Pothos-Compiler/
 
 ### 1. Set up a virtual environment
 
+The setup scripts create the virtual environment and install Python and npm dependencies.
+
 **Linux / macOS**
 ```bash
+./scripts/setup.sh
+# Or set up Python dependencies manually:
 python -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
 **Windows (PowerShell)**
 ```powershell
+./scripts/setup.ps1
+# Or set up Python dependencies manually:
 python -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
 ```
@@ -65,6 +71,10 @@ python -m venv .venv
 
 Only needed if you edited `index.html`, `script.js`, or `style.css`.
 
+**Linux / macOS:** `./scripts/build.sh`  
+**Windows (PowerShell):** `./scripts/build.ps1`
+
+Or run the build directly with npm:
 ```bash
 npm install
 npm run build
@@ -72,13 +82,19 @@ npm run build
 
 ### 3. Start the server
 
+The run scripts start the server and automatically run setup if the virtual environment is missing.
+
 **Linux / macOS**
 ```bash
+./scripts/run.sh
+# Or start the server manually:
 .venv/bin/python app.py
 ```
 
 **Windows (PowerShell)**
 ```powershell
+./scripts/run.ps1
+# Or start the server manually:
 .venv\Scripts\python app.py
 ```
 

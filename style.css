@@ -8,6 +8,10 @@
     --card-border: rgb(216, 216, 216);
     --card-shadow: white;
     --run-button-color: darkgreen;
+    --selection-pointer-color: #087a37;
+    --selection-pulse-color: var(--selection-pointer-color);
+    --error-pointer-color: #c62828;
+    --error-highlight-color: #d71920;
     --theme-button-color: rgb(244,244,244);
     --font-color: black;
     --logo-font-color: darkgreen;
@@ -22,6 +26,9 @@
     --card-border: rgb(61, 61, 61);
     --card-shadow: rgb(31, 30, 30);
     --run-button-color: green;
+    --selection-pointer-color: #8dffad;
+    --error-pointer-color: #ff858d;
+    --error-highlight-color: #ff5968;
     --theme-button-color: var(--bg-lv-1);
     --font-color: white;
     --logo-font-color: white;
@@ -38,10 +45,13 @@ header .container {
     display: flex;
     justify-content: space-between;
     width: 100%;
-    align-items: baseline;
-    padding: 2rem 1.5rem 0;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.65rem 1.5rem;
     height: auto;
     flex: 0 0 auto;
+    max-width: 1600px;
+    box-sizing: border-box;
 }
 
 .logo-wrapper {
@@ -52,7 +62,8 @@ header .container {
 }
 
 .logo-wrapper h1 {
-    font-family:monospace;
+    font-family: monospace;
+    font-size: 1.35rem;
     color: var(--logo-font-color);
     margin: 0;
 }
@@ -61,6 +72,8 @@ header .container {
     display: flex;
     gap: 0.62rem;
     align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
 }
 
 .option-label {
@@ -81,9 +94,36 @@ header .container {
 
 .logo-wrapper img {
     display: block;
-    height: 64px;
+    height: 48px;
     width: auto;
     object-fit: contain;
+}
+
+@media (max-width: 680px) {
+    header .container {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 0.6rem 0.8rem;
+    }
+
+    .logo-wrapper img {
+        height: 38px;
+    }
+
+    .logo-wrapper h1 {
+        font-size: 1.15rem;
+    }
+
+    .buttonTray {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 0.4rem;
+    }
+
+    .option-label {
+        font-size: 0.78rem;
+    }
 }
 
 button {
@@ -109,6 +149,10 @@ button {
 header .run {
     background-color: var(--run-button-color);
     /* color: var(--font-color); */
+}
+
+#runBtn[hidden] {
+    display: none;
 }
 
 header .theme {
@@ -149,7 +193,7 @@ body {
 }
 
 .container {
-    padding: 1.5rem;
+    padding: 0 1.5rem 1.5rem;
     display: flex;
     flex-direction: row;
     gap: 0.75rem;
@@ -228,7 +272,20 @@ body {
     gap: 0.6rem;
 }
 
+.result-tabs {
+    display: none;
+}
+
 @media (max-width: 800px) {
+    header .container {
+        padding: 0.5rem 0.65rem;
+    }
+
+    .container {
+        gap: 0.5rem;
+        padding: 0 0.5rem 0.5rem;
+    }
+
     .mobile-fold {
         flex-direction: column;
     }
@@ -239,22 +296,169 @@ body {
     }
 
     .right-bottom {
-        flex-direction: row;
+        flex-direction: column;
         flex: 1 1 0;
+        gap: 0.4rem;
     }
 
+    .result-tabs {
+        display: flex;
+        flex: 0 0 auto;
+        width: 100%;
+        overflow: hidden;
+        border: 1px solid var(--card-border);
+        border-radius: 4px;
+        background: var(--bg-lv-1);
+    }
+
+    .result-tab {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 0.4rem 0.45rem;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        border-radius: 0;
+        box-shadow: none;
+        background: transparent;
+        color: var(--font-color);
+    }
+
+    .result-tab[aria-selected="true"] {
+        border-bottom-color: var(--run-button-color);
+        background: color-mix(in srgb, var(--run-button-color) 10%, var(--bg-lv-1));
+    }
+
+    #lexerbox,
+    #errorBox {
+        display: none;
+        flex: 1 1 0;
+        min-height: 0;
+    }
+
+    #lexerbox.mobile-active,
+    #errorBox.mobile-active {
+        display: block;
+    }
+
+    #lexerbox table th,
+    #lexerbox table td {
+        padding: 0.45rem 0.35rem;
+    }
+
+    #errorBox table th,
+    #errorBox table td {
+        padding: 0.25rem 0.3rem;
+    }
 }
 
 
 #errorBox {
     flex: 0.5 1 0;
-    overflow: scroll;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+    padding: 0;
 }
 
-#errorBox code {
-    white-space: pre-line;
+@media (max-width: 800px) {
+    .mobile-fold #errorBox.mobile-active {
+        flex: 1 1 0;
+    }
 }
 
+#errorBox table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.78rem;
+}
+
+#errorBox thead {
+    position: sticky;
+    top: 0;
+    background: var(--bg-lv-1);
+}
+
+#errorBox th,
+#errorBox td {
+    padding: 0.3rem 0.4rem;
+    border-bottom: 1px solid var(--card-border);
+    vertical-align: top;
+}
+
+#errorBox th {
+    font-weight: 700;
+    border-bottom-color: var(--font-color);
+}
+
+#errorBox th:nth-child(1),
+#errorBox th:nth-child(2) {
+    width: 2.5rem;
+}
+
+#errorBox td:nth-child(1),
+#errorBox td:nth-child(2) {
+    white-space: nowrap;
+}
+
+#errorBox td:last-child {
+    overflow-wrap: anywhere;
+}
+
+#errorBox tbody tr[data-start] {
+    cursor: pointer;
+}
+
+#errorBox tbody tr[data-start]:hover {
+    background: color-mix(in srgb, var(--font-color) 8%, transparent);
+}
+
+#errorBox tbody tr.is-active,
+#errorBox tbody tr.is-active:hover {
+    background: color-mix(in srgb, #d14343 24%, var(--bg-lv-1));
+}
+
+#editor {
+    position: relative;
+}
+
+.selection-pointer {
+    position: absolute;
+    z-index: 10;
+    width: 0;
+    height: 0;
+    border-right: 6px solid transparent;
+    border-bottom: 8px solid var(--selection-pointer-color);
+    border-left: 6px solid transparent;
+    transform: translateX(-50%);
+    filter: drop-shadow(0 0 1px var(--bg-lv-1)) drop-shadow(0 0 3px var(--font-color));
+    opacity: 0;
+    pointer-events: none;
+}
+
+.selection-pointer.is-error {
+    border-bottom-color: var(--error-pointer-color);
+}
+
+#editor .cm-editor.cm-error-selection {
+    --selection-pulse-color: var(--error-highlight-color);
+}
+
+#editor .cm-editor.cm-table-selection .cm-selectionBackground,
+#editor .cm-editor.cm-table-selection .cm-activeLine {
+    animation: source-selection-blink 0.38s ease-in-out 3;
+}
+
+@keyframes source-selection-blink {
+    0%, 100% {
+        background-color: color-mix(in srgb, var(--selection-pulse-color) 24%, transparent);
+    }
+
+    50% {
+        background-color: color-mix(in srgb, var(--selection-pulse-color) 84%, transparent);
+    }
+}
 
 #editor,
 #editor .cm-editor {

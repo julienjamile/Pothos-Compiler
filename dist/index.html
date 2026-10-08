@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pothos Lexer – Pothos Compiler</title>
     <meta name="description" content="Pothos lexical analyzer: paste Pothos source code and inspect tokens, lexical errors, and TD state paths interactively.">
-  <script type="module" crossorigin src="./assets/index-iJgS8I8F.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-D-wk-D90.css">
+  <script type="module" crossorigin src="./assets/index-C2eb3amF.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-A36NCLGp.css">
 </head>
 
 <body>
@@ -23,6 +23,9 @@
                 </label>
                 <label class="option-label" title="Show the TD state path for each token">
                     <input type="checkbox" id="traceChk"> Show TD states
+                </label>
+                <label class="option-label" title="Run the lexer automatically while editing">
+                    <input type="checkbox" id="autoRunChk"> Auto-run
                 </label>
                 <button class="run" id="runBtn">
                     <span class="material-icons">
@@ -44,7 +47,11 @@
                 <div id="editor" aria-label="Source code editor"></div>
             </div>
             <div class="right-bottom">
-                <div class="card" id="lexerbox" autocorrect="off">
+                <div class="result-tabs" role="tablist" aria-label="Compiler output">
+                    <button type="button" class="result-tab" id="tokensTab" role="tab" aria-selected="true" aria-controls="lexerbox" data-result-tab="lexer">Tokens</button>
+                    <button type="button" class="result-tab" id="errorsTab" role="tab" aria-selected="false" aria-controls="errorBox" data-result-tab="errors" tabindex="-1">Errors</button>
+                </div>
+                <div class="card mobile-active" id="lexerbox" autocorrect="off" role="tabpanel" aria-labelledby="tokensTab">
                     <table>
                         <thead>
                             <tr>
@@ -62,8 +69,21 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="card" id="errorBox">
-                    <code>No errors found.</code>
+                <div class="card" id="errorBox" role="tabpanel" aria-labelledby="errorsTab">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Line</th>
+                                <th>Col</th>
+                                <th>Error</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="3">No errors found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
