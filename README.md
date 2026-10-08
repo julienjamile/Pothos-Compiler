@@ -1,8 +1,8 @@
 # Pothos Compiler
 
-**Pothos** is a programming language designed for BSCS 3-2 Group 3, PLM
-(Polytechnic University of the Philippines – Manila), Automata Theory &
-Formal Languages course.  
+**Pothos** is a programming language designed for BSCS 3-2 Group 3,
+PLM (Pamantasan ng Lungsod ng Maynila). 
+Automata Theory & Formal Languages course.  
 Source files use the **`.pths`** extension.
 
 This repository contains:
