@@ -41,7 +41,7 @@ from flask import Flask, Response, request, send_from_directory
 # ── Bootstrap sys.path so the lexer / compiler packages are importable ────────
 # app.py is at the repo root; back-end/pothos/ is two levels down.
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_POTHOS_DIR = os.path.join(_HERE, "back-end", "pothos")
+_POTHOS_DIR = os.path.join(_HERE, "backend", "pothos")
 if _POTHOS_DIR not in sys.path:
     sys.path.insert(0, _POTHOS_DIR)
 
