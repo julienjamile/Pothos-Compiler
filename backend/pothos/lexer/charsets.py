@@ -21,20 +21,14 @@ TAB = "\t"
 # ---------------------------------------------------------------------------
 caplet = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 lowlet = set("abcdefghijklmnopqrstuvwxyz")
-digit = set("123456789")                      # NOTE: no 0
+digit = set("123456789") #NOTE: no 0
 numbers = {"0"} | digit
 mathop = {"+", "-", "*", "/", "%"}
 relop_ch = {"<", ">", "=", "!"}
 
 # "any printable character, tab": printable ASCII is code 32 (space) .. 126 (~)
 ascii = {chr(code) for code in range(32, 127)} | {TAB}
-
-ascii_str_dq = ascii - {'"', "\\", NEWLINE}
-ascii_str_sq = ascii - {"'", "\\", NEWLINE}
-ascii_comment_sl = ascii - {NEWLINE}
 ml_char = (ascii | {NEWLINE}) - {"-"}
-ml_char_ns = (ascii | {NEWLINE}) - {"-", "/"}
-
 # The six escape sequences, written as the two source characters.
 # Escape sequences are represented by their two source characters.
 escape = {'\\"', "\\'", "\\\\", "\\n", "\\t", "\\0"}
@@ -47,8 +41,43 @@ whitespace = {SPACE, NEWLINE, TAB}
 # ---------------------------------------------------------------------------
 # Delimiter sets used by the transition rules
 # ---------------------------------------------------------------------------
-delim_space = whitespace | {EOF}
+delim_space = {SPACE, TAB}
 delim_quote = {"'", '"'}
+delim_datatype = delim_space | {NEWLINE}
+delim_io = delim_space | {"("}
+delim_bool = delim_space | mathop | relop_ch | {")", "}", "]", ";", ",", ":", EOF}
+delim_logic = delim_space | {"("}
+delim_block = delim_space | {NEWLINE, "{"}
+delim_stmt = delim_space | {NEWLINE, ";"}
+delim_struct = delim_space | {NEWLINE, ";", "(", "[", "{", "-"}
+delim_deleo = delim_space
+delim_const = delim_space
+delim_insit = delim_space | {NEWLINE, "(", "{", "[", "\"", "'", "-"}
+delim_plus = delim_space | letter | numbers | delim_quote | {"("}
+delim_arithmetic = delim_space | letter | numbers | {"("}
+delim_oper = delim_space | letter | numbers | {"(", "-"}
+delim_equality = delim_space | delim_quote | letter | numbers | {"(", "-"}
+delim_equal = delim_space | letter | numbers | {"(", "{", "[", "-"}
+delim_augoper = delim_space | letter | numbers | delim_quote | {"(", "-"}
+delim_openparen = delim_space | letter | numbers | delim_quote | {"(", "[", "-"}
+delim_closeparen = delim_space | relop_ch | {NEWLINE, ")", "]", "{", "}", ";", ","}
+delim_openbracket = delim_space | letter | numbers | delim_quote | {"(", "[", "{", "-"}
+delim_closebracket = delim_space | relop_ch | {NEWLINE, ")", "]", "}", ";", ","}
+delim_opencurly = delim_space | letter | numbers | delim_quote
+delim_closecurly = delim_space | delim_quote | relop_ch | {NEWLINE, ")", "]", "}", ";"}
+delim_comma = delim_space | letter | numbers | delim_quote | {"(", "[", "{"}
+delim_dqopen = delim_space | ascii
+delim_dqclose = delim_space | relop_ch | mathop | {NEWLINE, ")", "]", "}", ";",":"}
+delim_sqopen = delim_space | ascii
+delim_sqclose = delim_space | relop_ch | mathop | {NEWLINE, ")", "]", "}", ";",":"}
+delim_colon = delim_space | letter | numbers | delim_quote | {NEWLINE, "-", "[", "{"}
+delim_scolon = delim_space | letter | {"}", "-", "/", EOF}
+
+
+
+'''
+initial:
+
 delim_dquote = ascii_str_dq | {"\\", '"'}
 delim_squote = ascii_str_sq | {"\\", "'"}
 delim_operand = delim_space | letter | numbers | delim_quote | {"(", "[", "{", "-"}
@@ -91,3 +120,8 @@ alphanum_us = alphanum | underscore                     # TD3 label "alphanum, _
 delim_minus_no_numbers = delim_minus - numbers          # TD2 141 -> 142 "delim_minus − numbers"
 ascii_comment_sl_no_slash = ascii_comment_sl - {"/"}    # TD5 278 -> 280 "ascii_comment_sl − {/}"
 newline_eof = {NEWLINE, EOF}                            # TD5 278 -> 279, 280 -> 281 "newline, eof"
+
+
+'''
+
+
