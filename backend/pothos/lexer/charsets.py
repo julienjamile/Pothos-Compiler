@@ -1,28 +1,23 @@
 """
 charsets.py - every character set and delimiter set used by the Pothos lexer.
 
-Each set is defined ONCE, with the same name the PDF uses, so lexer.py can say
-`if c in delim_flow:` exactly like the edge label on the transition diagram.
-
-Sources (Pothos_ProgrammingLanguage.pdf):
-  * IV.B Regular Definition ............ p.31
-  * IV.E Delimiter Sets ................ p.34-35
-  * III.C.1.6 escape sequences ......... p.10   (for delim_escape, see A3)
+Each set is defined once so lexer.py can use the same names as the transition
+diagram edge labels, for example `if c in delim_flow:`.
 
 EOF is not a real character, so it is represented by the sentinel string
 EOF = "<eof>". It is longer than one character, so it can never be confused
-with a character of the source file. Sets that the PDF says contain "eof"
+with a character of the source file. Sets that include the end-of-file marker
 contain this sentinel.
 """
 
-EOF = "<eof>"          # IV.B: eof = { end-of-file marker }
+EOF = "<eof>"
 
 SPACE = " "
 NEWLINE = "\n"
 TAB = "\t"
 
 # ---------------------------------------------------------------------------
-# IV.B  Regular Definition (p.31)
+# Pothos character classes
 # ---------------------------------------------------------------------------
 caplet = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 lowlet = set("abcdefghijklmnopqrstuvwxyz")
@@ -41,7 +36,7 @@ ml_char = (ascii | {NEWLINE}) - {"-"}
 ml_char_ns = (ascii | {NEWLINE}) - {"-", "/"}
 
 # The six escape sequences, written as the two source characters.
-# (A3: the PDF writes "tab" here; III.C.1.6 says the sequence is \t.)
+# Escape sequences are represented by their two source characters.
 escape = {'\\"', "\\'", "\\\\", "\\n", "\\t", "\\0"}
 
 letter = caplet | lowlet
@@ -50,7 +45,7 @@ underscore = {"_"}
 whitespace = {SPACE, NEWLINE, TAB}
 
 # ---------------------------------------------------------------------------
-# IV.E  Delimiter Sets (p.34-35), in the order of the table
+# Delimiter sets used by the transition rules
 # ---------------------------------------------------------------------------
 delim_space = whitespace | {EOF}
 delim_quote = {"'", '"'}
@@ -72,8 +67,7 @@ delim_colon = delim_operand
 delim_reor = delim_space | delim_quote | {"(", "[", "{", "-"}
 delim_flow = delim_space | {"("}
 
-# X2: IV.E lists "ascii - { / }, newline"; the '--' row (p.39) and TD5
-# (278 -> 279 on "newline, eof") also allow eof, so eof is included.
+# A single-line comment can end at a newline or at the end of the source.
 delim_scomment_start = (ascii - {"/"}) | {NEWLINE, EOF}
 delim_mcomment_start = ascii | {NEWLINE}
 delim_mcomment_end = ascii | {NEWLINE, EOF}
@@ -87,8 +81,7 @@ delim_open_brace = delim_operand | {"}"}
 delim_comma = delim_operand
 delim_term = delim_space | letter | {"}", "-", "/", EOF}
 
-# A3: delim_escape is used by TD5 (274 -> 192, 277 -> 194) but is missing from
-# IV.E. Defined from III.C.1.6 (p.10): the character allowed after a backslash.
+# Characters allowed after a backslash inside a string.
 delim_escape = {'"', "'", "\\", "n", "t", "0"}
 
 # ---------------------------------------------------------------------------

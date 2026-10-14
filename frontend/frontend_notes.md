@@ -54,7 +54,7 @@ Then open **http://localhost:5000**.
       "phase":   "lexical",
       "line":    2,
       "column":  5,
-      "message": "identifier exceeds 20 characters (III.B.3)",
+      "message": "identifier exceeds 20 characters",
       "text":    "studentRegistrationNumber2026"
     }
   ],
@@ -89,7 +89,7 @@ before the user presses Run.
 
 ## Token types
 
-Token `type` (the `"token"` field) follows the Pothos spec (PDF IV.A–D):
+Token `type` (the `"token"` field) uses the token names defined by the Pothos lexer:
 
 | Category | Examples |
 |----------|---------|

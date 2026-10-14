@@ -1,13 +1,12 @@
 """
-tokens.py - the Token record and the token type names from the PDF.
+tokens.py - the Token record and token type names used by the Pothos lexer.
 
-Token types (Pothos_ProgrammingLanguage.pdf):
-  * reserved words (IV.A, p.28-30): the token type is the word itself,
-    e.g. "belial", "wharfa". Exception: Trua and Inaccu are "trua_lit" (IV.D).
-  * reserved symbols (IV.C, p.31-33): the token type is the symbol itself,
-    e.g. "+=", "(", ";".
-  * literals (IV.D, p.33-34): id, wharfa_lit, strina_lit, trua_lit,
-    comment_sl, comment_ml.
+Token types:
+  * reserved words use the word itself, e.g. "belial" and "wharfa".
+    Trua and Inaccu use the shared type "trua_lit".
+  * reserved symbols use the symbol itself, e.g. "+=", "(", and ";".
+  * identifiers, literals, and comments use id, wharfa_lit, strina_lit,
+    trua_lit, comment_sl, and comment_ml.
 
 The tuples below are reference lists for the parser and the tests. The lexer
 does NOT look identifiers up in them; reserved words are recognized only by
@@ -15,7 +14,7 @@ walking the TD1 states in lexer.py.
 """
 from dataclasses import dataclass
 
-# IV.D Reserved Literals
+# Literal and comment token types
 ID = "id"
 WHARFA_LIT = "wharfa_lit"
 STRINA_LIT = "strina_lit"
@@ -23,7 +22,7 @@ TRUA_LIT = "trua_lit"
 COMMENT_SL = "comment_sl"
 COMMENT_ML = "comment_ml"
 
-# IV.A Reserved Words, in table order (26 words)
+# Reserved words recognized by the lexer
 RESERVED_WORDS = (
     "strina", "wharfa", "trua", "lis", "glossare",          # 1. data types
     "prin", "inpub", "formo", "innum",                      # 2. I/O functions
@@ -35,8 +34,8 @@ RESERVED_WORDS = (
     "insid", "const", "pas",                                # 8. membership / misc
 )
 
-# IV.C Reserved Symbols that become tokens (the quotes and comment markers are
-# part of strina_lit / comment_sl / comment_ml tokens instead, see B3).
+# Reserved symbols that become tokens. Quotes and comment markers are part of
+# their respective string or comment tokens.
 RESERVED_SYMBOLS = (
     "+", "-", "*", "/", "%",
     "<", ">", "<=", ">=", "==", "!=",

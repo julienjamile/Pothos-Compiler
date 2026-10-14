@@ -1,7 +1,7 @@
 """
 lexer.py - the Pothos lexical analyzer (hand-written state machine).
 
-How to read this file next to the transition diagrams (TDs):
+How to read this file alongside the transition diagrams:
 
   * `state` holds a TD state number. State 0 is the shared start state.
       TD1 Reserved Words ............ states   1-136   -> _td1_reserved_words
@@ -26,19 +26,11 @@ How to read this file next to the transition diagrams (TDs):
     (retract 1), so it is read again as the start of the next token. State 154
     is marked ** and gives back 2 characters.
 
-  * No matching edge = lexical error (B1). The error is recorded, the lexer
+  * No matching edge = lexical error. The error is recorded, the lexer
     skips to the next whitespace / delimiter, and continues, so one run reports
     every error.
 
-Revisions to the TDs used here (details and page numbers in DECISIONS.md):
-  A1  A TD1 state with no matching edge restarts at state 196 (TD3) from the
-      first letter. So `ant`, `stri`, `belial1`, `pass` are identifiers.
-  A2  TD5 multi-line comment: 282 loops on ml_char; 283 -ml_char-> 282;
-      284 -'-'-> 284; 284 -ml_char_ns-> 282. The first --/ closes it.
-  A3  delim_escape = { " ' \\ n t 0 } (from III.C.1.6).
-  D   A COMPLETE reserved word followed by a character that is neither in its
-      delimiter set nor a letter/digit/_ (e.g. `belial{`) is a lexical error.
-      This is an open decision; see COMPLETE_KEYWORD_FALLS_BACK_TO_ID.
+Behavioral choices and examples are described in DECISIONS.md.
 """
 from bisect import bisect_right
 from typing import List, Tuple
@@ -59,30 +51,30 @@ from .tokens import (
     Token, ID, WHARFA_LIT, STRINA_LIT, TRUA_LIT, COMMENT_SL, COMMENT_ML,
 )
 
-# Open decision D (see DECISIONS.md). A complete reserved word followed by a
+# A complete reserved word followed by a
 # character that is not in its delimiter set and is not a letter, digit or _
 # (belial{  elsa(  reor;  lis[ ):
-#   False -> lexical error. III.B.5: reserved words cannot be identifiers.
-#   True  -> apply A1 literally: restart at 196, so `belial{` lexes as
+#   False -> lexical error.
+#   True  -> restart at 196, so `belial{` lexes as
 #            id "belial" followed by "{" (the parser must reject it).
 COMPLETE_KEYWORD_FALLS_BACK_TO_ID = False
 
 END = -1        # pseudo-state: the current token is finished (accepted or error)
 
-# Where error recovery stops skipping. Not a PDF set: whitespace (delim_space),
+# Where error recovery stops skipping: whitespace (delim_space),
 # the bracket/separator characters of delim_close, and the quotes (delim_quote),
 # so a string right after a bad word is still lexed as a string.
 RECOVERY_STOP = delim_space | {"(", ")", "{", "}", "[", "]", ";", ",", ":"} | delim_quote
 
-# Error messages, with the PDF rule each one comes from.
-ID_TOO_LONG = "identifier exceeds 20 characters (III.B.3)"
-INT_TOO_LONG = "wharfa literal exceeds 8 significant digits (III.C.2.4)"
-STR_RAW_NEWLINE = "unterminated strina literal: raw newline inside it, use \\n (III.C.1.5)"
-STR_NO_CLOSE_DQ = 'unterminated strina literal: missing closing " (III.C.1.1)'
-STR_NO_CLOSE_SQ = "unterminated strina literal: missing closing ' (III.C.1.1)"
-ML_UNTERMINATED = "unterminated multi-line comment: missing '--/' (III.A.2.a)"
-STRAY_CLOSER = "closing '--/' without an opening '/--' (III.A.2.b)"
-UNDERSCORE_START = "invalid character '_': an identifier must begin with a letter (III.B.1.a)"
+# Error messages describe the violated lexical rule.
+ID_TOO_LONG = "identifier exceeds 20 characters"
+INT_TOO_LONG = "wharfa literal exceeds 8 significant digits"
+STR_RAW_NEWLINE = "unterminated strina literal: raw newline inside it, use \\n"
+STR_NO_CLOSE_DQ = 'unterminated strina literal: missing closing "'
+STR_NO_CLOSE_SQ = "unterminated strina literal: missing closing '"
+ML_UNTERMINATED = "unterminated multi-line comment: missing '--/'"
+STRAY_CLOSER = "closing '--/' without an opening '/--'"
+UNDERSCORE_START = "invalid character '_': an identifier must begin with a letter"
 
 
 def tokenize(source: str, skip_comments: bool = False) -> Tuple[List[Token], List[LexicalError]]:
@@ -116,7 +108,7 @@ def _not_ascii(c: str, where: str) -> str:
 
 
 def _bad_escape(c: str) -> str:
-    return f"invalid escape sequence '\\{c}' (III.C.1.6)"
+    return f"invalid escape sequence '\\{c}'"
 
 
 class Lexer:
@@ -199,7 +191,7 @@ class Lexer:
         return END
 
     def _error(self, start: int, message: str) -> int:
-        """No matching edge (B1): record a lexical error, then recover.
+        """No matching edge: record a lexical error, then recover.
 
         Recovery skips to the next character in RECOVERY_STOP (whitespace,
         brackets, separators, quotes), always skipping at least one character,
@@ -229,18 +221,18 @@ class Lexer:
         return self._go(back_to)
 
     def _restart_at_196(self, start: int) -> int:
-        """A1: no matching TD1 edge -> restart at TD3 state 196 from the first letter."""
+        """No matching reserved-word transition -> restart at identifier state 196 from the first letter."""
         self.pos = start + 1                 # the first letter is the edge 0 --letter--> 196
         if self.trace:
-            self._path.append("A1->196")
+            self._path.append("restart->196")
         return 196
 
     def _keyword_not_delimited(self, start: int, word: str, set_name: str, c: str) -> int:
         """A complete reserved word (e.g. "belial") is NOT followed by its delimiter.
 
-        * c is a letter, digit or _  -> A1: the word keeps going as an identifier
+        * c is a letter, digit or _  -> the word keeps going as an identifier
           (belial1, pass, prints, Trua2).
-        * anything else (belial{)   -> D: lexical error (III.B.5), unless
+        * anything else (belial{)   -> lexical error, unless
           COMPLETE_KEYWORD_FALLS_BACK_TO_ID is True.
         """
         if c in alphanum_us or COMPLETE_KEYWORD_FALLS_BACK_TO_ID:
@@ -315,342 +307,342 @@ class Lexer:
         # Trua (125-129) and Inaccu (65-71) produce the token type trua_lit.
         if state == 1:                                    # read "a"
             if c == "n": return self._go(2)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 2:                                    # read "an" (complete)
             if c in delim_flow: return self._accept(start, 3, "an")  # 2 -> 3*
-            return self._keyword_not_delimited(start, "an", "delim_flow", c)  # A1 / D
+            return self._keyword_not_delimited(start, "an", "delim_flow", c)  # keyword delimiter handling
         if state == 4:                                    # read "b"
             if c == "e": return self._go(5)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 5:                                    # read "be"
             if c == "l": return self._go(6)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 6:                                    # read "bel"
             if c == "i": return self._go(7)
             if c == "s": return self._go(11)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 7:                                    # read "beli"
             if c == "a": return self._go(8)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 8:                                    # read "belia"
             if c == "l": return self._go(9)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 9:                                    # read "belial" (complete)
             if c in delim_flow: return self._accept(start, 10, "belial")  # 9 -> 10*
-            return self._keyword_not_delimited(start, "belial", "delim_flow", c)  # A1 / D
+            return self._keyword_not_delimited(start, "belial", "delim_flow", c)  # keyword delimiter handling
         if state == 11:                                   # read "bels"
             if c == "a": return self._go(12)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 12:                                   # read "belsa" (complete)
             if c in delim_flow: return self._accept(start, 13, "belsa")  # 12 -> 13*
-            return self._keyword_not_delimited(start, "belsa", "delim_flow", c)  # A1 / D
+            return self._keyword_not_delimited(start, "belsa", "delim_flow", c)  # keyword delimiter handling
         if state == 14:                                   # read "c"
             if c == "o": return self._go(15)
             if c == "y": return self._go(20)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 15:                                   # read "co"
             if c == "n": return self._go(16)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 16:                                   # read "con"
             if c == "s": return self._go(17)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 17:                                   # read "cons"
             if c == "t": return self._go(18)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 18:                                   # read "const" (complete)
             if c in delim_space: return self._accept(start, 19, "const")  # 18 -> 19*
-            return self._keyword_not_delimited(start, "const", "delim_space", c)  # A1 / D
+            return self._keyword_not_delimited(start, "const", "delim_space", c)  # keyword delimiter handling
         if state == 20:                                   # read "cy"
             if c == "c": return self._go(21)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 21:                                   # read "cyc"
             if c == "l": return self._go(22)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 22:                                   # read "cycl"
             if c == "a": return self._go(23)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 23:                                   # read "cycla" (complete)
             if c in delim_flow: return self._accept(start, 24, "cycla")  # 23 -> 24*
-            return self._keyword_not_delimited(start, "cycla", "delim_flow", c)  # A1 / D
+            return self._keyword_not_delimited(start, "cycla", "delim_flow", c)  # keyword delimiter handling
         if state == 25:                                   # read "d"
             if c == "e": return self._go(26)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 26:                                   # read "de"
             if c == "l": return self._go(27)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 27:                                   # read "del"
             if c == "e": return self._go(28)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 28:                                   # read "dele"
             if c == "o": return self._go(29)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 29:                                   # read "deleo" (complete)
             if c in delim_space: return self._accept(start, 30, "deleo")  # 29 -> 30*
-            return self._keyword_not_delimited(start, "deleo", "delim_space", c)  # A1 / D
+            return self._keyword_not_delimited(start, "deleo", "delim_space", c)  # keyword delimiter handling
         if state == 31:                                   # read "e"
             if c == "l": return self._go(32)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 32:                                   # read "el"
             if c == "s": return self._go(33)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 33:                                   # read "els"
             if c == "a": return self._go(34)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 34:                                   # read "elsa" (complete)
             if c in delim_block: return self._accept(start, 35, "elsa")  # 34 -> 35*
-            return self._keyword_not_delimited(start, "elsa", "delim_block", c)  # A1 / D
+            return self._keyword_not_delimited(start, "elsa", "delim_block", c)  # keyword delimiter handling
         if state == 36:                                   # read "f"
             if c == "o": return self._go(37)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 37:                                   # read "fo"
             if c == "r": return self._go(38)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 38:                                   # read "for"
             if c == "m": return self._go(39)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 39:                                   # read "form"
             if c == "o": return self._go(40)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 40:                                   # read "formo" (complete)
             if c in delim_flow: return self._accept(start, 41, "formo")  # 40 -> 41*
-            return self._keyword_not_delimited(start, "formo", "delim_flow", c)  # A1 / D
+            return self._keyword_not_delimited(start, "formo", "delim_flow", c)  # keyword delimiter handling
         if state == 42:                                   # read "g"
             if c == "l": return self._go(43)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 43:                                   # read "gl"
             if c == "o": return self._go(44)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 44:                                   # read "glo"
             if c == "s": return self._go(45)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 45:                                   # read "glos"
             if c == "s": return self._go(46)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 46:                                   # read "gloss"
             if c == "a": return self._go(47)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 47:                                   # read "glossa"
             if c == "r": return self._go(48)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 48:                                   # read "glossar"
             if c == "e": return self._go(49)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 49:                                   # read "glossare" (complete)
             if c in delim_space: return self._accept(start, 50, "glossare")  # 49 -> 50*
-            return self._keyword_not_delimited(start, "glossare", "delim_space", c)  # A1 / D
+            return self._keyword_not_delimited(start, "glossare", "delim_space", c)  # keyword delimiter handling
         if state == 51:                                   # read "i"
             if c == "n": return self._go(52)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 52:                                   # read "in"
             if c == "n": return self._go(53)
             if c == "p": return self._go(57)
             if c == "s": return self._go(61)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 53:                                   # read "inn"
             if c == "u": return self._go(54)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 54:                                   # read "innu"
             if c == "m": return self._go(55)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 55:                                   # read "innum" (complete)
             if c in delim_flow: return self._accept(start, 56, "innum")  # 55 -> 56*
-            return self._keyword_not_delimited(start, "innum", "delim_flow", c)  # A1 / D
+            return self._keyword_not_delimited(start, "innum", "delim_flow", c)  # keyword delimiter handling
         if state == 57:                                   # read "inp"
             if c == "u": return self._go(58)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 58:                                   # read "inpu"
             if c == "b": return self._go(59)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 59:                                   # read "inpub" (complete)
             if c in delim_flow: return self._accept(start, 60, "inpub")  # 59 -> 60*
-            return self._keyword_not_delimited(start, "inpub", "delim_flow", c)  # A1 / D
+            return self._keyword_not_delimited(start, "inpub", "delim_flow", c)  # keyword delimiter handling
         if state == 61:                                   # read "ins"
             if c == "i": return self._go(62)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 62:                                   # read "insi"
             if c == "d": return self._go(63)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 63:                                   # read "insid" (complete)
             if c in delim_space: return self._accept(start, 64, "insid")  # 63 -> 64*
-            return self._keyword_not_delimited(start, "insid", "delim_space", c)  # A1 / D
+            return self._keyword_not_delimited(start, "insid", "delim_space", c)  # keyword delimiter handling
         if state == 65:                                   # read "I"
             if c == "n": return self._go(66)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 66:                                   # read "In"
             if c == "a": return self._go(67)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 67:                                   # read "Ina"
             if c == "c": return self._go(68)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 68:                                   # read "Inac"
             if c == "c": return self._go(69)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 69:                                   # read "Inacc"
             if c == "u": return self._go(70)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 70:                                   # read "Inaccu" (complete)
             if c in delim_bool: return self._accept(start, 71, TRUA_LIT)  # 70 -> 71*
-            return self._keyword_not_delimited(start, "Inaccu", "delim_bool", c)  # A1 / D
+            return self._keyword_not_delimited(start, "Inaccu", "delim_bool", c)  # keyword delimiter handling
         if state == 72:                                   # read "l"
             if c == "i": return self._go(73)
             if c == "o": return self._go(76)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 73:                                   # read "li"
             if c == "s": return self._go(74)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 74:                                   # read "lis" (complete)
             if c in delim_space: return self._accept(start, 75, "lis")  # 74 -> 75*
-            return self._keyword_not_delimited(start, "lis", "delim_space", c)  # A1 / D
+            return self._keyword_not_delimited(start, "lis", "delim_space", c)  # keyword delimiter handling
         if state == 76:                                   # read "lo"
             if c == "o": return self._go(77)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 77:                                   # read "loo"
             if c == "d": return self._go(78)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 78:                                   # read "lood" (complete)
             if c in delim_flow: return self._accept(start, 79, "lood")  # 78 -> 79*
-            return self._keyword_not_delimited(start, "lood", "delim_flow", c)  # A1 / D
+            return self._keyword_not_delimited(start, "lood", "delim_flow", c)  # keyword delimiter handling
         if state == 80:                                   # read "n"
             if c == "e": return self._go(81)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 81:                                   # read "ne"
             if c == "v": return self._go(82)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 82:                                   # read "nev"
             if c == "e": return self._go(83)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 83:                                   # read "neve" (complete)
             if c in delim_flow: return self._accept(start, 84, "neve")  # 83 -> 84*
-            return self._keyword_not_delimited(start, "neve", "delim_flow", c)  # A1 / D
+            return self._keyword_not_delimited(start, "neve", "delim_flow", c)  # keyword delimiter handling
         if state == 85:                                   # read "o"
             if c == "t": return self._go(86)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 86:                                   # read "ot"
             if c == "h": return self._go(87)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 87:                                   # read "oth"
             if c == "a": return self._go(88)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 88:                                   # read "otha"
             if c == "n": return self._go(89)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 89:                                   # read "othan" (complete)
             if c in delim_flow: return self._accept(start, 90, "othan")  # 89 -> 90*
-            return self._keyword_not_delimited(start, "othan", "delim_flow", c)  # A1 / D
+            return self._keyword_not_delimited(start, "othan", "delim_flow", c)  # keyword delimiter handling
         if state == 91:                                   # read "p"
             if c == "a": return self._go(92)
             if c == "e": return self._go(98)
             if c == "r": return self._go(104)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 92:                                   # read "pa"
             if c == "s": return self._go(93)
             if c == "u": return self._go(95)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 93:                                   # read "pas" (complete)
             if c in delim_stmt: return self._accept(start, 94, "pas")  # 93 -> 94*
-            return self._keyword_not_delimited(start, "pas", "delim_stmt", c)  # A1 / D
+            return self._keyword_not_delimited(start, "pas", "delim_stmt", c)  # keyword delimiter handling
         if state == 95:                                   # read "pau"
             if c == "s": return self._go(96)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 96:                                   # read "paus" (complete)
             if c in delim_stmt: return self._accept(start, 97, "paus")  # 96 -> 97*
-            return self._keyword_not_delimited(start, "paus", "delim_stmt", c)  # A1 / D
+            return self._keyword_not_delimited(start, "paus", "delim_stmt", c)  # keyword delimiter handling
         if state == 98:                                   # read "pe"
             if c == "r": return self._go(99)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 99:                                   # read "per"
             if c == "s": return self._go(100)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 100:                                  # read "pers"
             if c == "i": return self._go(101)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 101:                                  # read "persi"
             if c == "s": return self._go(102)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 102:                                  # read "persis" (complete)
             if c in delim_stmt: return self._accept(start, 103, "persis")  # 102 -> 103*
-            return self._keyword_not_delimited(start, "persis", "delim_stmt", c)  # A1 / D
+            return self._keyword_not_delimited(start, "persis", "delim_stmt", c)  # keyword delimiter handling
         if state == 104:                                  # read "pr"
             if c == "i": return self._go(105)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 105:                                  # read "pri"
             if c == "n": return self._go(106)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 106:                                  # read "prin" (complete)
             if c in delim_flow: return self._accept(start, 107, "prin")  # 106 -> 107*
-            return self._keyword_not_delimited(start, "prin", "delim_flow", c)  # A1 / D
+            return self._keyword_not_delimited(start, "prin", "delim_flow", c)  # keyword delimiter handling
         if state == 108:                                  # read "r"
             if c == "e": return self._go(109)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 109:                                  # read "re"
             if c == "o": return self._go(110)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 110:                                  # read "reo"
             if c == "r": return self._go(111)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 111:                                  # read "reor" (complete)
             if c in delim_reor: return self._accept(start, 112, "reor")  # 111 -> 112*
-            return self._keyword_not_delimited(start, "reor", "delim_reor", c)  # A1 / D
+            return self._keyword_not_delimited(start, "reor", "delim_reor", c)  # keyword delimiter handling
         if state == 113:                                  # read "s"
             if c == "t": return self._go(114)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 114:                                  # read "st"
             if c == "r": return self._go(115)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 115:                                  # read "str"
             if c == "i": return self._go(116)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 116:                                  # read "stri"
             if c == "n": return self._go(117)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 117:                                  # read "strin"
             if c == "a": return self._go(118)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 118:                                  # read "strina" (complete)
             if c in delim_space: return self._accept(start, 119, "strina")  # 118 -> 119*
-            return self._keyword_not_delimited(start, "strina", "delim_space", c)  # A1 / D
+            return self._keyword_not_delimited(start, "strina", "delim_space", c)  # keyword delimiter handling
         if state == 120:                                  # read "t"
             if c == "r": return self._go(121)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 121:                                  # read "tr"
             if c == "u": return self._go(122)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 122:                                  # read "tru"
             if c == "a": return self._go(123)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 123:                                  # read "trua" (complete)
             if c in delim_space: return self._accept(start, 124, "trua")  # 123 -> 124*
-            return self._keyword_not_delimited(start, "trua", "delim_space", c)  # A1 / D
+            return self._keyword_not_delimited(start, "trua", "delim_space", c)  # keyword delimiter handling
         if state == 125:                                  # read "T"
             if c == "r": return self._go(126)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 126:                                  # read "Tr"
             if c == "u": return self._go(127)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 127:                                  # read "Tru"
             if c == "a": return self._go(128)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 128:                                  # read "Trua" (complete)
             if c in delim_bool: return self._accept(start, 129, TRUA_LIT)  # 128 -> 129*
-            return self._keyword_not_delimited(start, "Trua", "delim_bool", c)  # A1 / D
+            return self._keyword_not_delimited(start, "Trua", "delim_bool", c)  # keyword delimiter handling
         if state == 130:                                  # read "w"
             if c == "h": return self._go(131)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 131:                                  # read "wh"
             if c == "a": return self._go(132)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 132:                                  # read "wha"
             if c == "r": return self._go(133)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 133:                                  # read "whar"
             if c == "f": return self._go(134)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 134:                                  # read "wharf"
             if c == "a": return self._go(135)
-            return self._restart_at_196(start)            # A1: not a reserved word
+            return self._restart_at_196(start)            # no reserved-word match
         if state == 135:                                  # read "wharfa" (complete)
             if c in delim_space: return self._accept(start, 136, "wharfa")  # 135 -> 136*
-            return self._keyword_not_delimited(start, "wharfa", "delim_space", c)  # A1 / D
+            return self._keyword_not_delimited(start, "wharfa", "delim_space", c)  # keyword delimiter handling
         raise AssertionError(f"unknown TD1 state {state}")
 
     # ============================================ TD2  Reserved Symbols 137-195
@@ -770,7 +762,7 @@ class Lexer:
         # TD2 also draws 192 --delim_dquote--> 193* and 194 --delim_squote--> 195*.
         # delim_dquote = ascii_str_dq + { \ " } is exactly the set of characters
         # that TD5 gives an edge out of 192 (same for 194), so the TD5 edges are
-        # used and 193 / 195 are never reached: no separate quote token (B3).
+        # used and 193 / 195 are never reached: no separate quote token.
         raise AssertionError(f"unknown TD2 state {state}")
 
     # ================================================= TD3  Identifiers 196-235
@@ -987,21 +979,21 @@ class Lexer:
             if c in newline_eof:               return self._accept(start, 281, COMMENT_SL)   # 280 -> 281*
             return self._error_inside(280, _not_ascii(c, "a comment"), self.pos)
 
-        # ---- multi-line comment: 0 --/--> 149 --'-'--> 153 --'-'--> 282 (A2 edges) ----
+        # ---- multi-line comment: 0 --/--> 149 --'-'--> 153 --'-'--> 282 (comment transitions) ----
         if state == 282:                                  # inside "/-- ..."
             if c == "-":          return self._go(283)
-            if c in ml_char:      return self._go(282)    # loop (A2: ml_char, not "ascii, newline")
+            if c in ml_char:      return self._go(282)    # loop (ml_char excludes the closing hyphen)
             if c == EOF:          return self._error(start, ML_UNTERMINATED)
             return self._error_inside(282, _not_ascii(c, "a comment"), self.pos)
         if state == 283:                                  # read "-" inside the comment
             if c == "-":          return self._go(284)
-            if c in ml_char:      return self._go(282)    # A2: a lone "-" is comment text
+            if c in ml_char:      return self._go(282)    # a lone "-" is comment text
             if c == EOF:          return self._error(start, ML_UNTERMINATED)
             return self._error_inside(282, _not_ascii(c, "a comment"), self.pos)
         if state == 284:                                  # read "--" inside the comment
-            if c == "/":          return self._go(285)    # the FIRST --/ closes (III.A.2.c)
-            if c == "-":          return self._go(284)    # A2: "---/" still closes
-            if c in ml_char_ns:   return self._go(282)    # A2: "--x" is comment text
+            if c == "/":          return self._go(285)    # the first --/ closes the comment
+            if c == "-":          return self._go(284)    # "---/" still closes
+            if c in ml_char_ns:   return self._go(282)    # "--x" is comment text
             if c == EOF:          return self._error(start, ML_UNTERMINATED)
             return self._error_inside(282, _not_ascii(c, "a comment"), self.pos)
         if state == 285:                                  # read the closing "--/"

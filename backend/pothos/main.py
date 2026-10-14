@@ -47,7 +47,7 @@ def print_errors(errors):
 
 
 def print_trace(paths):
-    print("State paths (TD state numbers; * / ** = retract 1 / 2; A1->196 = restart as identifier):")
+    print("State paths (TD state numbers; * / ** = retract 1 / 2; restart->196 = restart as identifier):")
     for line, col, text, path in paths:
         print(f"  [{line}:{col}] {show_lexeme(text)!r}: {path}")
 

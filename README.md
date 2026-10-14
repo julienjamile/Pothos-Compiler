@@ -30,7 +30,7 @@ Pothos-Compiler/
     ├── compiler/           Compiler pipeline (pipeline.py, phases.py, serialize.py)
     ├── lexer/              Hand-written state-machine lexer (DO NOT EDIT)
     │   ├── __init__.py     Exports: tokenize, Lexer, Token, LexicalError
-    │   ├── charsets.py     Character sets from the Pothos PDF (IV.B / IV.E)
+    │   ├── charsets.py     Character classes and delimiter sets used by Pothos
     │   ├── tokens.py       Token dataclass + token-type names
     │   ├── errors.py       LexicalError dataclass
     │   └── lexer.py        The state machine (one branch per TD state)
@@ -39,7 +39,7 @@ Pothos-Compiler/
     │   └── errors.pths     11 lines, one lexical error each
     ├── tests/              108 lexer tests + API tests
     ├── READ.md             Lexer README
-    ├── DECISIONS.md        Every PDF conflict and what the lexer does
+    ├── DECISIONS.md        Current lexer behavior and language-rule choices
     └── WALKTHROUGH.md      Plain-language tour of the code
 ```
 
