@@ -1,82 +1,42 @@
-# Pothos Lexer Behavior
+# Lexer decisions
 
-This guide describes the language behavior currently implemented by the lexer.
-As Pothos rules evolve, update the character sets, state transitions, examples,
-and tests together.
+This table records how the current lexer resolves rules and delimiter
+differences. The lexer reports lexical errors and leaves syntax and semantic
+checks to later stages.
 
-## Token recognition
-
-- The lexer starts each token at state 0 and dispatches to one of five state
-  groups: reserved words, symbols, identifiers, integer literals, or strings
-  and comments.
-- A word that stops matching a reserved word can restart as an identifier from
-  its first character. For example, `ant`, `stri`, `pass`, and `belial1` are
-  identifiers.
-- Identifiers begin with a letter and can contain letters, digits, and `_`.
-  They may contain at most 20 characters.
-- Integer literals may contain up to 8 significant digits. Leading zeroes do
-  not count toward that limit. A minus sign followed immediately by digits is
-  part of the integer literal, so `-5` is one token and `3-2` becomes `3` and
-  `-2`.
-- Reserved words and symbols use their own text as the token type, except
-  `Trua` and `Inaccu`, which use `trua_lit`. Identifiers, integer literals,
-  strings, and comments use the token types defined in `tokens.py`.
-- Reserved words are case-sensitive. A differently cased spelling that is not
-  itself a reserved word is treated as an identifier.
-
-## Delimiters and symbols
-
-- Character classes and delimiter sets are centralized in `lexer/charsets.py`.
-  State branches use these named sets so a character-class change can be made
-  in one place.
-- `/` ends as a symbol when followed by a character in `delim_arithmetic`. The
-  sequence `/-` uses state 154's two-character retraction behavior so the
-  lexer emits `/` and processes the following characters again.
-- `innum` uses the same delimiter set as the other flow-control words.
-- A complete reserved word followed by a character outside its delimiter set
-  is a lexical error by default. For example, `belial{` is an error. Set
-  `COMPLETE_KEYWORD_FALLS_BACK_TO_ID = True` in `lexer/lexer.py` if the desired
-  behavior is to treat `belial` as an identifier in this case.
-
-## Strings and comments
-
-- Strings may use either quote style. Backslash escapes are limited to `\"`,
-  `\'`, `\\`, `\n`, `\t`, and `\0`.
-- A raw newline inside a string, an unsupported escape, a non-ASCII character,
-  or a missing closing quote produces a lexical error. An invalid string is
-  not emitted as a token.
-- Single-line comments begin with `--` and continue to a newline or end of
-  input.
-- Multi-line comments begin with `/--` and close at the first `--/`. Comments
-  do not nest. A closer without a preceding opener is an error.
-- `skip_comments=True` omits comment tokens while still recognizing comments.
-
-## Errors and state tracing
-
-- A character with no transition from the current state produces a lexical
-  error. Outside a string or comment, recovery skips input to the next
-  whitespace, bracket, separator, or quote so scanning can continue.
-- Errors inside strings and comments are recorded while scanning continues to
-  their end. The malformed string or comment is then omitted from the tokens.
-- `Lexer(source, trace=True)` records the state path used to produce each token.
-  `--trace` enables the same information in the command-line interface, and
-  the API's `trace` option includes the path in each serialized token.
-- `_accept` reads a delimiter and retracts it so the next token can consume it.
-  A single `*` in a state path represents one-character retraction; state 154
-  uses two-character retraction.
-
-## Examples to keep aligned with the rules
-
-| Source | Current behavior |
-|---|---|
-| `ant` | Identifier |
-| `Trua` | `trua_lit` |
-| `TRUA` | Identifier |
-| `-5` | One integer literal |
-| `/-- inner --/` | One multi-line comment |
-| `/-- outer /-- inner --/` | Comment ends at the first `--/`; remaining text is lexed as source |
-| `1.5` | Lexical error |
-| `1,000` | Integer, comma, integer |
-
-When a rule changes, revise this guide and add or update focused examples in
-the lexer tests.
+| # | rule | what the documentation says | what the lexer does | why |
+|---:|---|---|---|---|
+| 1 | semicolon delimiter | `delim_scolon` has no newline or numbers | adds newline and numbers | accepts lines ending with `;` and loop headers |
+| 2 | open curly delimiter | `delim_opencurly` has no newline or `}` | adds newline and `}` | accepts multi-line blocks and empty blocks |
+| 3 | open parenthesis delimiter | `delim_openparen` has no `)` or `{` | adds `)` and `{` | accepts empty calls and block headers |
+| 4 | open bracket delimiter | `delim_openbracket` has no `]` | adds `]` | accepts empty lists |
+| 5 | number delimiter | `delim_num` has no comma or colon | adds comma and colon | accepts lists, mappings, and argument lists |
+| 6 | identifier delimiter | `delim_id` has no `(` or `,` | adds `(` and `,` | accepts calls and parameter lists |
+| 7 | equal delimiter | `delim_equal` has no quotes | adds both quote characters | accepts a string immediately after `=` |
+| 8 | close bracket delimiter | `delim_closebracket` has no `[` or math operators | adds `[` and math operators, but not eof | accepts chained indexing and arithmetic; a final `]` at eof still errors |
+| 9 | close parenthesis delimiter | `delim_closeparen` has no math operators | adds math operators, but not eof | accepts arithmetic after grouped expressions; a final `)` at eof still errors |
+| 10 | close curly delimiter | `delim_closecurly` has no math operators, comma, or eof | adds math operators, comma, and eof | accepts expressions, collections, and a final block |
+| 11 | augmented operators | the delimiter table omits quotes | keeps quotes in `delim_augoper` | accepts a string after an augmented assignment |
+| 12 | membership delimiter | the name is `delim_insit` in older code and `delim_insid` in the current names | uses `delim_insid` | aligns the set name with the membership operator |
+| 13 | structural delimiter | the name is `delim_struct` in older code and `delim_struc` in the current names | uses `delim_struc` | aligns the set name with the documented name |
+| 14 | membership quotes | the character definitions use typographic quotes | uses straight ASCII quotes | matches source characters accepted by the lexer |
+| 15 | comment character sets | comment delimiters include non-ASCII characters | removes non-ASCII characters from comment sets | non-ASCII is an error in every context |
+| 16 | single-line comment | `--` reads through the line; a separate rule defines `--/` as a closer | a single-line comment cannot be followed by `/`; `--` followed by newline is empty | reports stray closers and accepts empty comments |
+| 17 | multi-line opener | the opener set is used but not separately defined | defines `delim_mlcomment_open` as space, printable ASCII, and newline | gives the opener an explicit set for the transition |
+| 18 | relational characters | the regular definition lists `==` | `relop_ch` contains the single character `=` | a character set cannot contain a two-character operator |
+| 19 | `belsa` | delimiter table maps it to `delim_block` | uses `delim_logic` | permits a condition after the keyword |
+| 20 | `const` | delimiter table maps it to a generic delimiter | uses `delim_const` | follows the variable-operation delimiter set |
+| 21 | `glossare` | delimiter table maps it to an I/O delimiter | uses `delim_datatype` | permits a declared function name after the keyword |
+| 22 | sign and numbers | a minus may appear with a numeric literal | minus is a separate operator token | keeps signs outside number lexemes |
+| 23 | leading zeros | leading zeros do not count as significant digits | accepts them and converts the lexeme to its integer value | preserves source spelling while producing the numeric value |
+| 24 | integer length | the integer part allows eight significant digits | ends the token after eight; a following digit starts another token | implements the state diagram's split |
+| 25 | fractions | a float has one to four digits after the decimal point | accepts one to four digits; extra digits start a new integer token | enforces the fractional limit |
+| 26 | decimal point placement | both sides of the point require digits | reports `5.` and `.5` as lexical errors | rejects incomplete float spellings |
+| 27 | escapes | strings allow `\n`, `\t`, `\0`, `\"`, `\'`, and `\\` | accepts those six escapes and reports other escapes at the backslash | keeps string contents explicit and recoverable |
+| 28 | unterminated strings | a string must end with its matching quote | reports one error through the end of the line, then resumes on the next line | avoids treating the remainder of the line as code |
+| 29 | keyword boundary | recognize reserved words and identifiers | scans the whole word before deciding whether it is a keyword | keeps keyword prefixes such as `printx` as identifiers |
+| 30 | truth literals | `Trua` and `Inaccu` are reserved words | emits both with token type `trua_lit` | gives truth values one literal token type |
+| 31 | non-ASCII | comments and strings may include their character classes | reports non-ASCII as an error in source, strings, and comments | keeps the accepted alphabet consistent |
+| 32 | function-name length | function names must have at least three characters | does not check the minimum length in the lexer | leaves the rule to the parser |
+| 33 | conflicting rule order | specific rules/examples, general rules, regular definitions, transition diagrams, delimiter tables | follows that priority when those sources disagree | selects one consistent interpretation |
+| 34 | plus sign before a number | `+25` is listed as an error case | tokenizes `+25` as `+` and `wharfa_lit("25")` without an error | the lexer recognizes the plus symbol separately and does not reject this token sequence |

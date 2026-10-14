@@ -1,250 +1,40 @@
-# Walkthrough: how the Pothos lexer works
+# Lexer panel walkthrough
 
-This guide follows the code in the order you would explain it in a defense:
-**character sets → tokens and errors → the engine → TD2 → TD3 → TD1 → TD4 → TD5 → CLI → tests.**
-Keep the TD diagrams open next to it. Every state number below is a TD state number.
+## Run the app and tests
 
----
+From the repository root, start the web app:
 
-## 1. Character sets: `lexer/charsets.py`
-
-Every character class and delimiter set is defined **once** in `charsets.py`:
-
-```python
-ascii        = {chr(code) for code in range(32, 127)} | {TAB}
-ml_char      = (ascii | {NEWLINE}) - {"-"}
-delim_oper   = delim_space | letter | numbers | {"(", "-"}
-escape       = {'\\"', "\\'", "\\\\", "\\n", "\\t", "\\0"}
+```powershell
+.\.venv\Scripts\python.exe app.py
 ```
 
-* **eof** is not a real character, so it is a sentinel string `EOF = "<eof>"`. It is longer
-  than one character, so it can never match a real character. Sets that "include eof" in the
-  include this sentinel.
-* A few helper sets have names that are TD edge labels, e.g. `delim_oper` and
-  `alphanum_us = alphanum | {"_"}`.
+Open the local address printed by Flask. Run the lexer regression tests in a
+second terminal:
 
-The lexer never writes a character list by hand. It always uses these names, so a change to
-a set happens in one place.
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests\test_lexer.py
+```
 
-## 2. Tokens and errors: `lexer/tokens.py`, `lexer/errors.py`
+Choose **Run** in the panel after entering an example. Enable **Show TD states**
+to display each token's path.
 
-* `Token(type, lexeme, line, column)` is one token. `line` and `column` are 1-based.
-* The **type** of a reserved word or symbol is the word or symbol itself (`belial`, `==`,
-  `;`). Literals are `id`, `wharfa_lit`, `strina_lit`, `trua_lit`. Comments are `comment_sl`
-  and `comment_ml`.
-* `Trua` and `Inaccu` are reserved words, but their token type is `trua_lit`.
-* `LexicalError(message, line, column, text)` prints as
-  `Lexical Error [line 2, col 1]: identifier exceeds 20 characters: 'studentReg…'`.
+## Live examples
 
-## 3. The engine: `lexer/lexer.py` (top part)
+Enter each source snippet separately. Token names and lexemes below are the
+expected lexical output; the lexer does not check whether the snippet is a
+complete program.
 
-**The main loop (`run`)** skips whitespace, then calls `_scan_token` once per token. Whitespace
-is not a token; it is only a delimiter that ends tokens.
-
-**`_scan_token`** starts at **state 0** and keeps calling the method that owns the current
-state, until a token is accepted or an error is recorded:
-
-| States | Method | TD |
+| Input | Expected output | State function |
 |---|---|---|
-| 0 | `_state_0` | shared start state |
-| 1–136 | `_td1_reserved_words` | TD1 |
-| 137–195 | `_td2_reserved_symbols` | TD2 |
-| 196–235 | `_td3_identifiers` | TD3 |
-| 236–271 | `_td4_integer_literals` | TD4 |
-| 272–286 (+ 192, 194) | `_td5_strings_comments` | TD5 |
+| `flo x;` | `flo("flo")`, `id("x")`, `;(";")` | `_td1_reserved_words`, `_td2_reserved_symbols`, `_td3_identifiers` |
+| `12.5;` | `flo_lit("12.5")`, `;(";")`; the serialized value is `12.5` | `_td4_integer_literals`, `_td2_reserved_symbols` |
+| `msg = "a\nb";` | `id("msg")`, `=("=")`, `strina_lit("\"a\\nb\"")`, `;(";")` | `_td2_reserved_symbols`, `_td3_identifiers`, `_td5_strings_comments` |
+| `/-- note`<br>`inside --/` | one `comment_ml` token containing both lines | `_td5_strings_comments` |
+| `5.` | lexical error at line 1, column 1: `5.` needs a digit after the point | `_td4_integer_literals` |
+| `"bad\x"` | lexical error at line 1, column 5: invalid escape `\x` | `_td5_strings_comments` |
 
-Inside each method there is **one `if state == N:` branch per state**, and **one line per
-outgoing edge**:
-
-```python
-if state == 196:                                  # 1 character
-    if c in alphanum_us: return self._go(198)
-    if c in delim_id:    return self._accept(start, 197, ID)  # 196 -> 197*
-    return self._error(start, ...)                 # no edge = error
-```
-
-Three helpers do all the work:
-
-* **`_go(N)`**: take an edge. Consume the current character and move to state N.
-* **`_accept(start, N, type)`**: take the delimiter edge into final state N and emit the
-  token.
-* **`_error(start, message)`**: no matching edge. Record the error, skip ahead, continue.
-
-### Why retraction happens (`*` and `**`)
-
-A token only ends when the lexer sees the character **after** it. In `x=1`, the lexer knows
-`x` is finished only when it reads `=`. That `=` belongs to the next token, so it is
-**given back** (retract 1). That is what `*` on a final state means.
-
-`_accept` reads the delimiter, then moves `pos` back by `retract`. The next token starts
-exactly at the delimiter. eof counts as one virtual character, so retraction works at the end
-of the file too.
-
-`**` (only state 154) gives back **2** characters.
-
-### Errors and recovery
-
-* **No matching edge = lexical error**. The error is recorded, the lexer skips at
-  least one character up to the next whitespace or one of `( ) { } [ ] ; , : " '`, and
-  restarts at state 0. One run reports **every** error.
-* **Inside a string or comment** (bad escape, non-ASCII character), `_error_inside` records
-  the error but keeps reading to the end of that literal, then drops it. The rest of the
-  line is not misread as code.
-
-## 4. TD2: Reserved Symbols (states 137–195)
-
-State 0 sends each symbol's first character to its own state:
-`+`→137, `-`→141, `*`→145, `/`→149, `%`→155, `<`→159, `>`→163, `=`→167, `!`→171,
-`(`→174, `)`→176, `[`→178, `]`→180, `{`→182, `}`→184, `,`→186, `:`→188, `;`→190.
-
-Each symbol state either reads a second character (`<` then `=` → `<=`) or accepts on its
-delimiter set:
-
-```
-'<=': 0 -> 159 -> 161 -> 162*        delimiter: delim_equality
-```
-
-**Shared states.** Some states belong to more than one TD. They are **one state** with
-**one branch**, containing every TD's edges:
-
-```python
-if state == 141:                                  # read "-"  (shared: TD2, TD5)
-    if c == "=":                    return self._go(143)   # TD2: -=
-    if c == "-":                    return self._go(278)   # TD5: -- comment
-    if c in delim_oper:             return self._accept(start, 142, "-")
-```
-
-* **141 (`-`)**: `-=`, a `--` comment, or the minus token. `-5` → `-` `5`.
-* **149 (`/`)**: `/=`, the `/` token (delimiter `delim_arithmetic`), or `/-`.
-* **153 (`/-`)**: a second `-` starts a `/--` comment (TD5). Otherwise it is **state 154,
-  `**`**: the lexer gives back the `-` and the next character and emits only `/`. So
-  `x/-y` → `x` `/` `-` `y`.
-* **192 (`"`) and 194 (`'`)** are shared states used for string contents.
-  States 193 / 195 are unused; quote marks are not separate tokens.
-
-## 5. TD3: Identifiers (states 196–235)
-
-Any letter that does not start a reserved word goes to **196**. Each following state counts
-one more character:
-
-```
-196 (1 char) -> 198 (2) -> 200 (3) -> ... -> 234 (20 chars)
-```
-
-* Each counting state reads a letter, digit or `_` (`alphanum_us`) to go on, or a
-  **`delim_id`** character to accept (retract 1).
-* State 234 has no edge for a 21st character, so that is the
-  "identifier exceeds 20 characters" error.
-* An identifier must start with a letter: `_age` has no edge from state 0.
-
-```
-'x': 0 -> 196 -> 197*
-```
-
-## 6. TD1: Reserved Words (states 1–136)
-
-State 0 sends the first letter of each reserved word into TD1 (`a`→1, `b`→4, … `w`→130).
-Then each state reads one more letter of the word:
-
-```
-'lis': 0 -> 72 -> 73 -> 74 -> 75*            delimiter: delim_space
-```
-
-When the whole word is read, its **delimiter set** must follow (e.g. `delim_io` for `belial`,
-`innum`; `delim_block` for `elsa`). Then the word is accepted (retract 1).
-
-**Fallback to identifiers.** Many words start like a keyword but are not one (`ant`,
-`stri`, `pass`, `belial1`). TD1 has no edge for them, so the lexer **goes back to the first
-letter and restarts at state 196**. The trace shows this as `restart->196`:
-
-```
-'ant':     0 -> 1 -> 2 -> restart->196 -> 198 -> 200 -> 201*
-'belial1': 0 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> restart->196 -> ... -> 209*
-```
-
-Case variants are identifiers too. `TRUA` and `Innum` leave the TD1 path at the
-wrong-case letter and fall back to identifier scanning. `Belial` never enters TD1, because no reserved
-word starts with `B`, so state 0 sends it straight to 196.
-
-**Open decision D.** A **complete** keyword followed by a character that is not in its
-delimiter set **and** is not a letter, digit or `_` (e.g. `belial{`) is a lexical error by
-default. Set `COMPLETE_KEYWORD_FALLS_BACK_TO_ID = True` at the top of `lexer.py` to make it
-fall back to an identifier instead.
-
-## 7. TD4: Numeric Literals (states 236–263)
-
-* `0` → **236**, which loops on more `0`s. Leading zeros do not count toward the limit.
-* `1`–`9` → **238** (1 significant digit) → 240 → … → **252** (8 significant digits).
-* Integer states accept on **`delim_num`** (retract 1).
-* State 252 splits before a 9th digit, which starts a new number token.
-* A decimal point can follow the integer part; states 254–263 read 1–4 fraction digits.
-
-```
-'007': 0 -> 236 -> 236 -> 238 -> 239*
-'-5':  0 -> 141 -> 142* ; 0 -> 238 -> 239*
-```
-
-Numbers require digits before and after a decimal point. `delim_num` includes commas
-and colons, so collection values and arguments can be separated.
-
-## 8. TD5: Strings and Comments (states 272–286, plus 192 / 194)
-
-**Strings.** `"` → 192 (inside the string). 192 loops on `delim_dqopen`, `\` → 274 (escape),
-and `"` → 272 (closed), which accepts on `delim_dqclose`. Single quotes work the same way with
-194 / 277 / 275.
-
-```
-'"Hi\n"': 0 -> 192 -> 192 -> 192 -> 274 -> 192 -> 272 -> 273*
-```
-
-* After `\`, only the sequences in `escape` are allowed. `"Hi\x"` is an error.
-* A raw newline or eof before the closing quote is an "unterminated strina literal" error.
-
-**Single-line comment.** `-` → 141, `-` → **278**. Then it loops in **280** until a newline
-or eof (279 / 281, retract 1, so the newline is not part of the comment).
-`--/` here is a **stray closer** error.
-
-```
-'-- note': 0 -> 141 -> 278 -> 280 -> ... -> 281*
-```
-
-**Multi-line comment.** `/` → 149, `-` → 153, `-` → **282** (inside).
-
-* 282 loops on `ml_char` (anything but `-`); `-` → 283.
-* 283: `-` → 284; anything else → back to 282 (a lone `-` is just text).
-* 284: `/` → 285 (**closed**: the first `--/` wins); `-` stays in 284; anything else → 282.
-* eof inside the comment is an "unterminated multi-line comment" error.
-
-```
-'/-- a-b ---/': 0 -> 149 -> 153 -> 282 -> 282 -> 282 -> 283 -> 282 -> 282 -> 283 -> 284 -> 284 -> 285 -> 286*
-```
-
-## 9. The CLI: `main.py`
-
-* `python main.py file.pths` prints the token table (`Line | Col | Lexeme | Token`), then
-  the errors.
-* `--no-comments` hides comment tokens. `--trace` adds each token's state path.
-* No file opens an interactive prompt: an empty line lexes the buffer, `:quit` exits.
-* Exit code 0 = clean, 1 = lexical errors, 2 = the file cannot be read.
-
-### Using `--trace` to check a TD by hand
-
-```
-python main.py --trace samples/sample.pths
-```
-
-Every token gets a line like `[1:5] 'ant': 0 -> 1 -> 2 -> restart->196 -> 198 -> 200 -> 201*`:
-
-* `[1:5]`: line 1, column 5.
-* The numbers are TD states, in order. Follow them on the diagram.
-* `*` / `**` on the last state = retract 1 / 2.
-* `restart->196` = the word left TD1 and restarted as an identifier.
-
-## 10. Tests: `tests/`
-
-Run `python -m unittest` from `pothos/` (108 tests). There is one file per TD, plus:
-
-* Example inputs can be labelled **OK** (valid), **LATER** (lexes cleanly; a later
-  compiler phase rejects it), or **LEX** (lexical error).
-* `test_recovery_and_positions.py`: line/column numbers, and several errors in one run.
-* `test_cli.py`: the CLI output, flags and exit codes.
+`_td1_reserved_words` recognizes keywords, `_td2_reserved_symbols` recognizes
+operators and delimiters, `_td3_identifiers` scans names,
+`_td4_integer_literals` scans numbers, and `_td5_strings_comments` scans
+strings and comments. Shared transitions can pass through more than one
+state function while a token is being scanned.

@@ -1,5 +1,6 @@
 import { basicSetup, EditorView } from "codemirror";
-import { Compartment } from "@codemirror/state";
+import { Compartment, Prec } from "@codemirror/state";
+import { keymap } from "@codemirror/view";
 import { HighlightStyle, StreamLanguage, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 import mireLanguage from "./language.json";
@@ -72,7 +73,7 @@ resultTabs.forEach((tab, index) => {
 });
 
 const syntax = mireLanguage.syntax;
-const reservedWords = new Set(syntax.reservedWords);
+const reservedWords = new Set([...syntax.reservedWords, "flo", "inflo"]);
 const booleans = new Set(syntax.literals.booleans);
 const nullLiterals = new Set(syntax.literals.null);
 const symbolTokens = [...syntax.symbols, ...syntax.delimiters.separators]
@@ -106,14 +107,10 @@ const mireLanguageSupport = StreamLanguage.define({
         if (quote) {
             stream.match(quote);
             while (!stream.eol()) {
-                if (stream.match(syntax.strings.escape)) {
-                    stream.next();
+                const character = stream.next();
+                if (character === syntax.strings.escape) {
                     if (!stream.eol()) stream.next();
-                } else if (stream.match(quote)) {
-                    break;
-                } else {
-                    stream.next();
-                }
+                } else if (character === quote) break;
             }
             return "string";
         }
@@ -294,6 +291,13 @@ const editor = editorHost
     ? new EditorView({
         parent: editorHost,
         extensions: [
+            Prec.highest(keymap.of([{
+                key: "Tab",
+                run(view) {
+                    view.dispatch(view.state.replaceSelection("\t"));
+                    return true;
+                },
+            }])),
             basicSetup,
             mireLanguageSupport,
             syntaxHighlighting(mireHighlightStyle),

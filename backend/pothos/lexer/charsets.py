@@ -33,7 +33,7 @@ relop_ch = {"<", ">", "=", "!"}  # equality operators are checked one character 
 ascii = {chr(code) for code in range(32, 127)} | {TAB}
 ml_char = (ascii | whitespace) - {"-"}
 
-delim_space = {SPACE, TAB}
+delim_space = {SPACE, TAB, NEWLINE}
 delim_quote = {"'", '"'}
 delim_bool = delim_space | {")", "}", "]", ";", ",", ":"} | mathop | relop_ch | {EOF}
 delim_block = delim_space | {NEWLINE, "{"}

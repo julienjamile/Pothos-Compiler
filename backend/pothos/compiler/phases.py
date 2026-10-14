@@ -106,19 +106,35 @@ class LexicalPhase:
 
         # Build the serialised token list for the API response.
         if trace:
-            # lx.paths is a list of (line, col, lexeme, path_str) tuples,
-            # one entry per token in the same order as `tokens`.
-            path_strings = [p[3] for p in lx.paths]
-            state["paths"] = path_strings
+            paths_by_location = {(line, col): path for line, col, _, path in lx.paths}
+            token_locations = {(token.line, token.column) for token in tokens}
+            error_paths = {
+                location: path
+                for location, path in paths_by_location.items()
+                if location not in token_locations
+            }
+            state["paths"] = [path for _, _, _, path in lx.paths]
             token_dicts = [
-                token_to_dict(t, i + 1, path=path_strings[i])
-                for i, t in enumerate(tokens)
+                token_to_dict(
+                    token,
+                    i + 1,
+                    path=paths_by_location.get((token.line, token.column)),
+                )
+                for i, token in enumerate(tokens)
+            ]
+            error_dicts = [
+                error_to_dict(
+                    error,
+                    phase=self.name,
+                    path=error_paths.get((error.line, error.column)),
+                )
+                for error in lex_errors
             ]
         else:
             token_dicts = [token_to_dict(t, i + 1) for i, t in enumerate(tokens)]
+            error_dicts = [error_to_dict(e, phase=self.name) for e in lex_errors]
 
         state["token_dicts"] = token_dicts
-        error_dicts = [error_to_dict(e, phase=self.name) for e in lex_errors]
 
         return PhaseResult(ok=len(error_dicts) == 0, errors=error_dicts)
 

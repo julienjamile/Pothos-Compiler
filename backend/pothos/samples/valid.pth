@@ -1,0 +1,34 @@
+strina wharfa flo trua lis glossare
+prin inpub formo innum inflo 
+Trua Inaccu 
+an othan neve 
+belial belsa elsa lood cycla paus persis pas
+reor deleo const insid 
+
+wharfa count = 007;
+flo ratio = 12.5;
+lis values = [1, 2, 3];
+glossare add(wharfa left, wharfa right) {
+    reor left + right;
+};
+prin("line\n\t\0\"\'\\");
+inpub(count);
+belial (count > 0) {
+    belsa (count < 10) {
+        count += 1;
+    } elsa {
+        paus;
+    }
+}
+lood (count insid values) {
+    prin(count);
+}
+cycla (count == 10) {
+    persis;
+}
+deleo count;
+const answer = Trua;
+-- single-line comment
+/-- multi-line
+comment with - and -- inside
+--/
