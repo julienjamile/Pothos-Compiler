@@ -1,13 +1,17 @@
 """
-charsets.py - every character set and delimiter set used by the Pothos lexer.
+charsets.py - Pothos character classes and delimiter sets.
 
-Each set is defined once so lexer.py can use the same names as the transition
-diagram edge labels, for example `if c in delim_flow:`.
+EOF is represented by the sentinel string "<eof>", which cannot be confused
+with a source character.
 
-EOF is not a real character, so it is represented by the sentinel string
-EOF = "<eof>". It is longer than one character, so it can never be confused
-with a character of the source file. Sets that include the end-of-file marker
-contain this sentinel.
+Current delimiter choices:
+  Statement endings allow a following number or newline.
+  Curly blocks may open across lines and close before another block.
+  Parenthesis and bracket delimiters allow adjacent calls and indexing.
+  Numeric and identifier delimiters allow collection and argument syntax.
+  Assignment, grouping, and closing delimiters allow adjacent expressions.
+  Comments accept ASCII text and end at their closing marker or line ending.
+  Relational operators are checked one character at a time.
 """
 
 EOF = "<eof>"
@@ -16,112 +20,86 @@ SPACE = " "
 NEWLINE = "\n"
 TAB = "\t"
 
-# ---------------------------------------------------------------------------
-# Pothos character classes
-# ---------------------------------------------------------------------------
+whitespace = {SPACE, NEWLINE, TAB}
 caplet = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 lowlet = set("abcdefghijklmnopqrstuvwxyz")
-digit = set("123456789") #NOTE: no 0
-numbers = {"0"} | digit
-mathop = {"+", "-", "*", "/", "%"}
-relop_ch = {"<", ">", "=", "!"}
-
-# "any printable character, tab": printable ASCII is code 32 (space) .. 126 (~)
-ascii = {chr(code) for code in range(32, 127)} | {TAB}
-ml_char = (ascii | {NEWLINE}) - {"-"}
-# The six escape sequences, written as the two source characters.
-# Escape sequences are represented by their two source characters.
-escape = {'\\"', "\\'", "\\\\", "\\n", "\\t", "\\0"}
-
 letter = caplet | lowlet
+digit = set("123456789")
+numbers = {"0"} | digit
 alphanum = letter | numbers
 underscore = {"_"}
-whitespace = {SPACE, NEWLINE, TAB}
+mathop = {"+", "-", "*", "/", "%"}
+relop_ch = {"<", ">", "=", "!"}  # equality operators are checked one character at a time
+ascii = {chr(code) for code in range(32, 127)} | {TAB}
+ml_char = (ascii | whitespace) - {"-"}
 
-# ---------------------------------------------------------------------------
-# Delimiter sets used by the transition rules
-# ---------------------------------------------------------------------------
 delim_space = {SPACE, TAB}
 delim_quote = {"'", '"'}
-delim_datatype = delim_space | {NEWLINE}
-delim_io = delim_space | {"("}
-delim_bool = delim_space | mathop | relop_ch | {")", "}", "]", ";", ",", ":", EOF}
-delim_logic = delim_space | {"("}
+delim_bool = delim_space | {")", "}", "]", ";", ",", ":"} | mathop | relop_ch | {EOF}
 delim_block = delim_space | {NEWLINE, "{"}
 delim_stmt = delim_space | {NEWLINE, ";"}
-delim_struct = delim_space | {NEWLINE, ";", "(", "[", "{", "-"}
+delim_openparen = delim_space | letter | numbers | delim_quote | {"(", "[", "-", ")", "{"}  # allows adjacent calls and blocks
+delim_openbracket = delim_space | letter | numbers | delim_quote | {"(", "[", "{", "-", "]"}  # allows an empty bracket pair
+delim_opencurly = delim_space | letter | numbers | delim_quote | {NEWLINE, "}"}  # allows empty and multi-line blocks
+delim_comma = delim_space | letter | numbers | delim_quote | {"(", "[", "{"}
+delim_colon = delim_space | {NEWLINE, "-", "[", "{"} | letter | numbers | delim_quote
+delim_id = delim_space | {NEWLINE, "[", "]", "}", ")", ";", "(", ","} | mathop | relop_ch  # allows calls and argument lists
+delim_num = delim_space | {NEWLINE, ";", "]", "}", ")", ",", ":"} | mathop | relop_ch  # allows lists and key-value pairs
+
+alphanum_us = alphanum | underscore
+
+# old names lexer.py still imports - remove once lexer.py is updated
+ascii_str_dq = ascii - {'"', "\\", NEWLINE}
+ascii_str_sq = ascii - {"'", "\\", NEWLINE}
+ascii_comment_sl = ascii - {NEWLINE}
+ml_char_ns = (ascii | {NEWLINE}) - {"-", "/"}
+delim_operand = delim_space | letter | numbers | delim_quote | {"(", "[", "{", "-"}
+delim_int = delim_num
+delim_str = delim_space | {"(", ")", "{", "}", "[", "]", ";", ",", ":"} | mathop | relop_ch
+delim_close = delim_space | {"(", ")", "{", "}", "[", "]", ";", ",", ":"} | mathop | relop_ch
+delim_rbrace = delim_close | {EOF}
+delim_relop = delim_operand
+delim_mathop = delim_operand
+delim_minus = delim_space | letter | numbers | delim_quote | {"(", "[", "{"}
+delim_assops = delim_operand
+delim_reor = delim_space | delim_quote | {"(", "[", "{", "-"}
+delim_flow = delim_space | {"("}
+delim_mcomment_end = ascii | {NEWLINE, EOF}
+delim_open_paren = delim_openparen
+delim_open_brack = delim_openbracket
+delim_open_brace = delim_opencurly
+delim_term = delim_space | letter | {"}", "-", "/", EOF}
+delim_escape = {'"', "'", "\\", "n", "t", "0"}
+delim_minus_no_numbers = delim_minus - numbers
+ascii_comment_sl_no_slash = ascii_comment_sl - {"/"}
+newline_eof = {NEWLINE, EOF}
+
+# in the doc but not used by lexer.py yet - wire up or remove after step 5
+escape = {'\\"', "\\'", "\\\\", "\\n", "\\t", "\\0"}
+special_characters = {
+    chr(code) for code in range(128, 0x110000) if chr(code).isprintable()
+}
+delim_datatype = delim_space | {NEWLINE}
+delim_io = delim_space | {"("}
+delim_logic = delim_space | {"("}
+delim_struc = delim_space | {NEWLINE, ";", "(", "[", "{", "-"}
 delim_deleo = delim_space
 delim_const = delim_space
-delim_insit = delim_space | {NEWLINE, "(", "{", "[", "\"", "'", "-"}
+delim_insid = delim_space | {NEWLINE, "(", "{", "[", '"', "'", "-"}  # string delimiters use plain quotes
 delim_plus = delim_space | letter | numbers | delim_quote | {"("}
 delim_arithmetic = delim_space | letter | numbers | {"("}
 delim_oper = delim_space | letter | numbers | {"(", "-"}
 delim_equality = delim_space | delim_quote | letter | numbers | {"(", "-"}
-delim_equal = delim_space | letter | numbers | {"(", "{", "[", "-"}
-delim_augoper = delim_space | letter | numbers | delim_quote | {"(", "-"}
-delim_openparen = delim_space | letter | numbers | delim_quote | {"(", "[", "-"}
-delim_closeparen = delim_space | relop_ch | {NEWLINE, ")", "]", "{", "}", ";", ","}
-delim_openbracket = delim_space | letter | numbers | delim_quote | {"(", "[", "{", "-"}
-delim_closebracket = delim_space | relop_ch | {NEWLINE, ")", "]", "}", ";", ","}
-delim_opencurly = delim_space | letter | numbers | delim_quote
-delim_closecurly = delim_space | delim_quote | relop_ch | {NEWLINE, ")", "]", "}", ";"}
-delim_comma = delim_space | letter | numbers | delim_quote | {"(", "[", "{"}
+delim_equal = delim_space | letter | numbers | delim_quote | {"(", "[", "{", "-"}  # allows a string immediately after =
+delim_augoper = delim_space | letter | numbers | delim_quote | {"(", "-"}  # allows string expressions after augmented operators
+delim_closeparen = delim_space | {NEWLINE, ")", "]", "{", "}", ";", ","} | relop_ch | mathop  # allows an operator after a grouped expression
+delim_closebracket = delim_space | {NEWLINE, ")", "]", "}", ";", ",", "["} | relop_ch | mathop  # allows chained indexing and operators
+delim_closecurly = delim_space | delim_quote | {NEWLINE, ")", "]", "}", ";", ",", EOF} | relop_ch | mathop  # allows collection separators and end of input
 delim_dqopen = delim_space | ascii
-delim_dqclose = delim_space | relop_ch | mathop | {NEWLINE, ")", "]", "}", ";",":"}
+delim_dqclose = delim_space | {NEWLINE, ",", ")", "]", "}", ";", ":"} | relop_ch | mathop
 delim_sqopen = delim_space | ascii
-delim_sqclose = delim_space | relop_ch | mathop | {NEWLINE, ")", "]", "}", ";",":"}
-delim_colon = delim_space | letter | numbers | delim_quote | {NEWLINE, "-", "[", "{"}
-delim_scolon = delim_space | letter | {"}", "-", "/", EOF}
-
-
-
-'''
-initial:
-
-delim_dquote = ascii_str_dq | {"\\", '"'}
-delim_squote = ascii_str_sq | {"\\", "'"}
-delim_operand = delim_space | letter | numbers | delim_quote | {"(", "[", "{", "-"}
-
-delim_id = delim_space | {"(", ")", "{", "}", "[", "]", ";", ",", ":"} | mathop | relop_ch
-delim_int = delim_space | {"(", ")", "{", "}", "[", "]", ";", ",", ":"} | mathop | relop_ch
-delim_str = delim_space | {"(", ")", "{", "}", "[", "]", ";", ",", ":"} | mathop | relop_ch
-delim_close = delim_space | {"(", ")", "{", "}", "[", "]", ";", ",", ":"} | mathop | relop_ch
-delim_rbrace = delim_close | {EOF}
-
-delim_relop = delim_operand
-delim_mathop = delim_operand
-delim_minus = delim_space | letter | numbers | delim_quote | {"(", "[", "{"}   # no '-': -- starts a comment
-delim_assops = delim_operand
-delim_colon = delim_operand
-delim_reor = delim_space | delim_quote | {"(", "[", "{", "-"}
-delim_flow = delim_space | {"("}
-
-# A single-line comment can end at a newline or at the end of the source.
-delim_scomment_start = (ascii - {"/"}) | {NEWLINE, EOF}
-delim_mcomment_start = ascii | {NEWLINE}
-delim_mcomment_end = ascii | {NEWLINE, EOF}
-
-delim_bool = delim_space | {"(", ")", "{", "}", "[", "]", ";", ",", ":"} | mathop | relop_ch
-delim_block = delim_space | {"{"}
-delim_stmt = delim_space | {";"}
-delim_open_paren = delim_operand | {")"}
-delim_open_brack = delim_operand | {"]"}
-delim_open_brace = delim_operand | {"}"}
-delim_comma = delim_operand
-delim_term = delim_space | letter | {"}", "-", "/", EOF}
-
-# Characters allowed after a backslash inside a string.
-delim_escape = {'"', "'", "\\", "n", "t", "0"}
-
-# ---------------------------------------------------------------------------
-# Edge labels on the TDs that are set expressions, named once here.
-# ---------------------------------------------------------------------------
-alphanum_us = alphanum | underscore                     # TD3 label "alphanum, _"
-delim_minus_no_numbers = delim_minus - numbers          # TD2 141 -> 142 "delim_minus − numbers"
-ascii_comment_sl_no_slash = ascii_comment_sl - {"/"}    # TD5 278 -> 280 "ascii_comment_sl − {/}"
-newline_eof = {NEWLINE, EOF}                            # TD5 278 -> 279, 280 -> 281 "newline, eof"
-
-
-'''
-
-
+delim_sqclose = delim_space | {NEWLINE, ",", ")", "]", "}", ";", ":"} | relop_ch | mathop
+delim_scolon = delim_space | letter | numbers | {NEWLINE, "}", "-", "/", EOF}  # allows loop headers and line endings
+delim_slcomment = (ascii - {"/"}) | {NEWLINE, EOF}  # slash starts the closing marker
+delim_mlcomment_open = delim_space | ascii | {NEWLINE}  # allowed content after a multi-line comment opener
+delim_mlcomment_close = delim_space | letter | {NEWLINE, "}", EOF, "/"}  # closing marker and comment endings

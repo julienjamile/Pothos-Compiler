@@ -3,10 +3,13 @@ tokens.py - the Token record and token type names used by the Pothos lexer.
 
 Token types:
   * reserved words use the word itself, e.g. "belial" and "wharfa".
-    Trua and Inaccu use the shared type "trua_lit".
   * reserved symbols use the symbol itself, e.g. "+=", "(", and ";".
-  * identifiers, literals, and comments use id, wharfa_lit, strina_lit,
-    trua_lit, comment_sl, and comment_ml.
+  * identifiers, literals, and comments use id, wharfa_lit, flo_lit,
+    strina_lit, trua_lit, comment_sl, and comment_ml.
+  * Trua and Inaccu are both trua_lit, so the parser treats them
+    like any other literal.
+  * A minus sign is never part of a number; -5 is '-' then
+    wharfa_lit '5'.
 
 The tuples below are reference lists for the parser and the tests. The lexer
 does NOT look identifiers up in them; reserved words are recognized only by
@@ -17,6 +20,7 @@ from dataclasses import dataclass
 # Literal and comment token types
 ID = "id"
 WHARFA_LIT = "wharfa_lit"
+FLO_LIT = "flo_lit"
 STRINA_LIT = "strina_lit"
 TRUA_LIT = "trua_lit"
 COMMENT_SL = "comment_sl"
@@ -24,14 +28,22 @@ COMMENT_ML = "comment_ml"
 
 # Reserved words recognized by the lexer
 RESERVED_WORDS = (
-    "strina", "wharfa", "trua", "lis", "glossare",          # 1. data types
-    "prin", "inpub", "formo", "innum",                      # 2. I/O functions
-    "Inaccu", "Trua",                                       # 3. truth literals -> trua_lit
-    "an", "othan", "neve",                                  # 4. logical operators
-    "belial", "belsa", "elsa", "lood", "cycla", "paus", "persis",   # 5. control flow
-    "reor",                                                 # 6. structural definitions
-    "deleo",                                                # 7. variable operations
-    "insid", "const", "pas",                                # 8. membership / misc
+    # data types
+    "strina", "wharfa", "flo", "trua", "lis", "glossare",
+    # input / output
+    "prin", "inpub", "formo", "innum", "inflo",
+    # truth literals (token type trua_lit)
+    "Trua", "Inaccu",
+    # logical operators
+    "an", "othan", "neve",
+    # control flow
+    "belial", "belsa", "elsa", "lood", "cycla", "paus", "persis", "pas",
+    # structural
+    "reor",
+    # variable operations
+    "deleo", "const",
+    # membership
+    "insid",
 )
 
 # Reserved symbols that become tokens. Quotes and comment markers are part of
@@ -48,7 +60,7 @@ RESERVED_SYMBOLS = (
 @dataclass(frozen=True)
 class Token:
     type: str       # token type name, e.g. "id", "wharfa_lit", "belial", "+="
-    lexeme: str     # exact source text, e.g. "0100", "\"Hi\\n\"", "-5"
+    lexeme: str     # exact source text, e.g. "0100", "\"Hi\\n\"", "12.5"
     line: int       # 1-based line of the first character
     column: int     # 1-based column of the first character
 
