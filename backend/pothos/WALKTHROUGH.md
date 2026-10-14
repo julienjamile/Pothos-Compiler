@@ -13,15 +13,14 @@ Every character class and delimiter set is defined **once** in `charsets.py`:
 ```python
 ascii        = {chr(code) for code in range(32, 127)} | {TAB}
 ml_char      = (ascii | {NEWLINE}) - {"-"}
-delim_minus  = delim_space | letter | numbers | delim_quote | {"(", "[", "{"}   # no '-'
-delim_escape = {'"', "'", "\\", "n", "t", "0"}
+delim_oper   = delim_space | letter | numbers | {"(", "-"}
+escape       = {'\\"', "\\'", "\\\\", "\\n", "\\t", "\\0"}
 ```
 
 * **eof** is not a real character, so it is a sentinel string `EOF = "<eof>"`. It is longer
   than one character, so it can never match a real character. Sets that "include eof" in the
   include this sentinel.
-* A few helper sets have names that are TD edge labels, e.g.
-  `delim_minus_no_numbers = delim_minus - numbers` (the TD2 141 → 142 edge) and
+* A few helper sets have names that are TD edge labels, e.g. `delim_oper` and
   `alphanum_us = alphanum | {"_"}`.
 
 The lexer never writes a character list by hand. It always uses these names, so a change to
@@ -102,24 +101,21 @@ Each symbol state either reads a second character (`<` then `=` → `<=`) or acc
 delimiter set:
 
 ```
-'<=': 0 -> 159 -> 161 -> 162*        delimiter: delim_relop
+'<=': 0 -> 159 -> 161 -> 162*        delimiter: delim_equality
 ```
 
 **Shared states.** Some states belong to more than one TD. They are **one state** with
 **one branch**, containing every TD's edges:
 
 ```python
-if state == 141:                                  # read "-"  (shared: TD2, TD4, TD5)
+if state == 141:                                  # read "-"  (shared: TD2, TD5)
     if c == "=":                    return self._go(143)   # TD2: -=
     if c == "-":                    return self._go(278)   # TD5: -- comment
-    if c == "0":                    return self._go(254)   # TD4: -0...
-    if c in digit:                  return self._go(256)   # TD4: -digit...
-    if c in delim_minus_no_numbers: return self._accept(start, 142, "-")
+    if c in delim_oper:             return self._accept(start, 142, "-")
 ```
 
-* **141 (`-`)**: `-=`, a `--` comment, a negative number (`-5`), or the minus token.
-  `-` followed by a digit becomes part of `wharfa_lit`, so `3-2` → `3` `-2`.
-* **149 (`/`)**: `/=`, the `/` token (delimiter `delim_minus`), or `/-`.
+* **141 (`-`)**: `-=`, a `--` comment, or the minus token. `-5` → `-` `5`.
+* **149 (`/`)**: `/=`, the `/` token (delimiter `delim_arithmetic`), or `/-`.
 * **153 (`/-`)**: a second `-` starts a `/--` comment (TD5). Otherwise it is **state 154,
   `**`**: the lexer gives back the `-` and the next character and emits only `/`. So
   `x/-y` → `x` `/` `-` `y`.
@@ -154,7 +150,7 @@ Then each state reads one more letter of the word:
 'lis': 0 -> 72 -> 73 -> 74 -> 75*            delimiter: delim_space
 ```
 
-When the whole word is read, its **delimiter set** must follow (e.g. `delim_flow` for `belial`,
+When the whole word is read, its **delimiter set** must follow (e.g. `delim_io` for `belial`,
 `innum`; `delim_block` for `elsa`). Then the word is accepted (retract 1).
 
 **Fallback to identifiers.** Many words start like a keyword but are not one (`ant`,
@@ -175,34 +171,33 @@ delimiter set **and** is not a letter, digit or `_` (e.g. `belial{`) is a lexica
 default. Set `COMPLETE_KEYWORD_FALLS_BACK_TO_ID = True` at the top of `lexer.py` to make it
 fall back to an identifier instead.
 
-## 7. TD4: Integer Literals (states 236–271)
+## 7. TD4: Numeric Literals (states 236–263)
 
 * `0` → **236**, which loops on more `0`s. Leading zeros do not count toward the limit.
 * `1`–`9` → **238** (1 significant digit) → 240 → … → **252** (8 significant digits).
-* Each state accepts on **`delim_int`** (retract 1).
-* State 252 has no edge for a 9th digit: "wharfa literal exceeds 8 significant digits".
-* Negative numbers come in from **141**: `-0` → 254, `-digit` → 256 → … → 270.
+* Integer states accept on **`delim_num`** (retract 1).
+* State 252 splits before a 9th digit, which starts a new number token.
+* A decimal point can follow the integer part; states 254–263 read 1–4 fraction digits.
 
 ```
 '007': 0 -> 236 -> 236 -> 238 -> 239*
-'-5':  0 -> 141 -> 256 -> 257*
+'-5':  0 -> 141 -> 142* ; 0 -> 238 -> 239*
 ```
 
-`.`, `_` and letters are not in `delim_int`, so `1.5`, `1_000`, `1e5` are lexical errors.
-`,` and space are in `delim_int`, so `1,000` lexes as `1 , 000`, and the parser
-rejects it.
+Numbers require digits before and after a decimal point. `delim_num` includes commas
+and colons, so collection values and arguments can be separated.
 
 ## 8. TD5: Strings and Comments (states 272–286, plus 192 / 194)
 
-**Strings.** `"` → 192 (inside the string). 192 loops on `ascii_str_dq`, `\` → 274 (escape),
-and `"` → 272 (closed), which accepts on `delim_str`. Single quotes work the same way with
+**Strings.** `"` → 192 (inside the string). 192 loops on `delim_dqopen`, `\` → 274 (escape),
+and `"` → 272 (closed), which accepts on `delim_dqclose`. Single quotes work the same way with
 194 / 277 / 275.
 
 ```
 '"Hi\n"': 0 -> 192 -> 192 -> 192 -> 274 -> 192 -> 272 -> 273*
 ```
 
-* After `\`, only `delim_escape` = `" ' \ n t 0` is allowed. `"Hi\x"` is an error.
+* After `\`, only the sequences in `escape` are allowed. `"Hi\x"` is an error.
 * A raw newline or eof before the closing quote is an "unterminated strina literal" error.
 
 **Single-line comment.** `-` → 141, `-` → **278**. Then it loops in **280** until a newline

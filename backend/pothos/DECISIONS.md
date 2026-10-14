@@ -29,7 +29,7 @@ and tests together.
 - Character classes and delimiter sets are centralized in `lexer/charsets.py`.
   State branches use these named sets so a character-class change can be made
   in one place.
-- `/` ends as a symbol when followed by a character in `delim_minus`. The
+- `/` ends as a symbol when followed by a character in `delim_arithmetic`. The
   sequence `/-` uses state 154's two-character retraction behavior so the
   lexer emits `/` and processes the following characters again.
 - `innum` uses the same delimiter set as the other flow-control words.

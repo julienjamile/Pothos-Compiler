@@ -41,7 +41,8 @@ from .charsets import (
     delim_space, delim_quote, delim_id, delim_num, delim_bool, delim_block, delim_stmt,
     delim_openparen, delim_openbracket, delim_opencurly, delim_closeparen,
     delim_closebracket, delim_closecurly, delim_comma, delim_colon, delim_scolon,
-    delim_datatype, delim_io, delim_logic, delim_deleo, delim_const,
+    delim_datatype, delim_io, delim_logic, delim_struc, delim_deleo, delim_const,
+    delim_insid,
     delim_plus, delim_arithmetic, delim_oper, delim_equality,
     delim_equal, delim_augoper, delim_dqopen, delim_dqclose, delim_sqopen,
     delim_sqclose, delim_slcomment, delim_mlcomment_open, delim_mlcomment_close,
@@ -49,7 +50,7 @@ from .charsets import (
 )
 from .errors import LexicalError
 from .tokens import (
-    Token, ID, WHARFA_LIT, STRINA_LIT, TRUA_LIT, COMMENT_SL, COMMENT_ML,
+    Token, ID, WHARFA_LIT, FLO_LIT, STRINA_LIT, TRUA_LIT, COMMENT_SL, COMMENT_ML,
 )
 
 # A complete reserved word followed by a
@@ -64,6 +65,9 @@ END = -1        # pseudo-state: the current token is finished (accepted or error
 
 # Recovery stops at whitespace, brackets, separators, and quotes so strings remain visible.
 RECOVERY_STOP = delim_space | {"(", ")", "{", "}", "[", "]", ";", ",", ":"} | delim_quote
+ID_DELIMITER = delim_id | {EOF}  # adj: eof ends an identifier
+REOR_DELIMITER = delim_struc - {NEWLINE, ";"} | delim_quote
+INSID_DELIMITER = delim_insid & delim_space
 
 # Error messages describe the violated lexical rule.
 ID_TOO_LONG = "identifier exceeds 20 characters"
@@ -143,6 +147,30 @@ class Lexer:
         state = 0
         while state != END:
             c = self._peek()
+            if c != EOF and c not in ascii and c != NEWLINE:
+                if state == 192:
+                    state = self._error_inside(192, _not_ascii(c, "source"), self.pos)
+                elif state == 194:
+                    state = self._error_inside(194, _not_ascii(c, "source"), self.pos)
+                elif state == 274:
+                    state = self._error_non_ascii_escape(c, 192)
+                elif state == 277:
+                    state = self._error_non_ascii_escape(c, 194)
+                elif state == 278:
+                    state = self._error_inside(280, _not_ascii(c, "source"), self.pos)
+                elif state == 280:
+                    state = self._error_inside(280, _not_ascii(c, "source"), self.pos)
+                elif state in (282, 283, 284):
+                    state = self._error_inside(282, _not_ascii(c, "source"), self.pos)
+                elif state == 272:
+                    state = self._accept(start, 273, STRINA_LIT)
+                elif state == 275:
+                    state = self._accept(start, 276, STRINA_LIT)
+                elif state == 285:
+                    state = self._accept(start, 286, COMMENT_ML)
+                else:
+                    state = self._error_character(c)
+                continue
             if state == 0:
                 state = self._state_0(c, start)
             elif state <= 136 or state in (287, 288, 289, 290, 291):
@@ -218,6 +246,37 @@ class Lexer:
         self.errors.append(LexicalError(message, line, col, self.src[text_start:self.pos + 1]))
         self._bad = True
         return self._go(back_to)
+
+    def _error_non_ascii_escape(self, c: str, back_to: int) -> int:
+        slash = self.pos - 1
+        line, col = self._where(slash)
+        self.errors.append(LexicalError(_bad_escape(c), line, col, self.src[slash:self.pos + 1]))
+        self._bad = True
+        line, col = self._where(self.pos)
+        self.errors.append(LexicalError(_not_ascii(c, "source"), line, col, c))
+        return self._go(back_to)
+
+    def _error_character(self, c: str) -> int:
+        line, col = self._where(self.pos)
+        self.errors.append(LexicalError(_not_ascii(c, "source"), line, col, c))
+        if self.trace:
+            self._path.append("error")
+            self._save_path(self.pos, c)
+        self.pos += 1
+        return END
+
+    def _unterminated_string(self, start: int, message: str) -> int:
+        line_end = self.src.find(NEWLINE, self.pos)
+        if line_end == -1:
+            line_end = self.n
+        text = self.src[start:line_end]
+        line, col = self._where(start)
+        self.errors.append(LexicalError(message, line, col, text))
+        if self.trace:
+            self._path.append("error")
+            self._save_path(start, text)
+        self.pos = line_end + (line_end < self.n)
+        return END
 
     def _restart_at_196(self, start: int) -> int:
         """No matching reserved-word transition -> restart at identifier state 196 from the first letter."""
@@ -479,8 +538,8 @@ class Lexer:
             if c == "d": return self._go(63)
             return self._restart_at_196(start)            # no reserved-word match
         if state == 63:                                   # read "insid" (complete)
-            if c in delim_space: return self._accept(start, 64, "insid")  # 63 -> 64*
-            return self._keyword_not_delimited(start, "insid", "delim_space", c)  # keyword delimiter handling
+            if c in INSID_DELIMITER: return self._accept(start, 64, "insid")  # 63 -> 64*
+            return self._keyword_not_delimited(start, "insid", "INSID_DELIMITER", c)
         if state == 65:                                   # read "I"
             if c == "n": return self._go(66)
             return self._restart_at_196(start)            # no reserved-word match
@@ -597,8 +656,8 @@ class Lexer:
             if c == "r": return self._go(111)
             return self._restart_at_196(start)            # no reserved-word match
         if state == 111:                                  # read "reor" (complete)
-            if c in delim_space | delim_quote | {"(", "[", "{", "-"}: return self._accept(start, 112, "reor")  # 111 -> 112*
-            return self._keyword_not_delimited(start, "reor", "delim_space | delim_quote | {'(', '[', '{', '-')", c)
+            if c in REOR_DELIMITER: return self._accept(start, 112, "reor")  # 111 -> 112*
+            return self._keyword_not_delimited(start, "reor", "REOR_DELIMITER", c)
         if state == 113:                                  # read "s"
             if c == "t": return self._go(114)
             return self._restart_at_196(start)            # no reserved-word match
@@ -672,12 +731,10 @@ class Lexer:
             if c in delim_augoper: return self._accept(start, 140, "+=")        # 139 -> 140*
             return self._error(start, _cannot_follow(c, "'+='", "delim_augoper"))
 
-        if state == 141:                                  # read "-"  (shared: TD2, TD4, TD5)
+        if state == 141:                                  # read "-"  (shared: TD2, TD5)
             if c == "=":                    return self._go(143)               # TD2: -=
             if c == "-":                    return self._go(278)               # TD5: -- comment
-            if c == "0":                    return self._go(254)               # TD4: -0...
-            if c in digit:                  return self._go(256)               # TD4: -digit...
-            if c in delim_oper - numbers: return self._accept(start, 142, "-")   # 141 -> 142*
+            if c in delim_oper:            return self._accept(start, 142, "-")   # 141 -> 142*
             return self._error(start, _cannot_follow(c, "'-'", "delim_oper"))
         if state == 143:                                  # read "-="
             if c in delim_augoper: return self._accept(start, 144, "-=")        # 143 -> 144*
@@ -787,167 +844,156 @@ class Lexer:
         # State 196 + 2(k-1) means "k characters read"; its final state is the next number.
         if state == 196:                                  # 1 character
             if c in alphanum_us: return self._go(198)
-            if c in delim_id:    return self._accept(start, 197, ID)  # 196 -> 197*
+            if c in ID_DELIMITER: return self._accept(start, 197, ID)  # 196 -> 197*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 198:                                  # 2 characters
             if c in alphanum_us: return self._go(200)
-            if c in delim_id:    return self._accept(start, 199, ID)  # 198 -> 199*
+            if c in ID_DELIMITER: return self._accept(start, 199, ID)  # 198 -> 199*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 200:                                  # 3 characters
             if c in alphanum_us: return self._go(202)
-            if c in delim_id:    return self._accept(start, 201, ID)  # 200 -> 201*
+            if c in ID_DELIMITER: return self._accept(start, 201, ID)  # 200 -> 201*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 202:                                  # 4 characters
             if c in alphanum_us: return self._go(204)
-            if c in delim_id:    return self._accept(start, 203, ID)  # 202 -> 203*
+            if c in ID_DELIMITER: return self._accept(start, 203, ID)  # 202 -> 203*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 204:                                  # 5 characters
             if c in alphanum_us: return self._go(206)
-            if c in delim_id:    return self._accept(start, 205, ID)  # 204 -> 205*
+            if c in ID_DELIMITER: return self._accept(start, 205, ID)  # 204 -> 205*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 206:                                  # 6 characters
             if c in alphanum_us: return self._go(208)
-            if c in delim_id:    return self._accept(start, 207, ID)  # 206 -> 207*
+            if c in ID_DELIMITER: return self._accept(start, 207, ID)  # 206 -> 207*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 208:                                  # 7 characters
             if c in alphanum_us: return self._go(210)
-            if c in delim_id:    return self._accept(start, 209, ID)  # 208 -> 209*
+            if c in ID_DELIMITER: return self._accept(start, 209, ID)  # 208 -> 209*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 210:                                  # 8 characters
             if c in alphanum_us: return self._go(212)
-            if c in delim_id:    return self._accept(start, 211, ID)  # 210 -> 211*
+            if c in ID_DELIMITER: return self._accept(start, 211, ID)  # 210 -> 211*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 212:                                  # 9 characters
             if c in alphanum_us: return self._go(214)
-            if c in delim_id:    return self._accept(start, 213, ID)  # 212 -> 213*
+            if c in ID_DELIMITER: return self._accept(start, 213, ID)  # 212 -> 213*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 214:                                  # 10 characters
             if c in alphanum_us: return self._go(216)
-            if c in delim_id:    return self._accept(start, 215, ID)  # 214 -> 215*
+            if c in ID_DELIMITER: return self._accept(start, 215, ID)  # 214 -> 215*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 216:                                  # 11 characters
             if c in alphanum_us: return self._go(218)
-            if c in delim_id:    return self._accept(start, 217, ID)  # 216 -> 217*
+            if c in ID_DELIMITER: return self._accept(start, 217, ID)  # 216 -> 217*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 218:                                  # 12 characters
             if c in alphanum_us: return self._go(220)
-            if c in delim_id:    return self._accept(start, 219, ID)  # 218 -> 219*
+            if c in ID_DELIMITER: return self._accept(start, 219, ID)  # 218 -> 219*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 220:                                  # 13 characters
             if c in alphanum_us: return self._go(222)
-            if c in delim_id:    return self._accept(start, 221, ID)  # 220 -> 221*
+            if c in ID_DELIMITER: return self._accept(start, 221, ID)  # 220 -> 221*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 222:                                  # 14 characters
             if c in alphanum_us: return self._go(224)
-            if c in delim_id:    return self._accept(start, 223, ID)  # 222 -> 223*
+            if c in ID_DELIMITER: return self._accept(start, 223, ID)  # 222 -> 223*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 224:                                  # 15 characters
             if c in alphanum_us: return self._go(226)
-            if c in delim_id:    return self._accept(start, 225, ID)  # 224 -> 225*
+            if c in ID_DELIMITER: return self._accept(start, 225, ID)  # 224 -> 225*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 226:                                  # 16 characters
             if c in alphanum_us: return self._go(228)
-            if c in delim_id:    return self._accept(start, 227, ID)  # 226 -> 227*
+            if c in ID_DELIMITER: return self._accept(start, 227, ID)  # 226 -> 227*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 228:                                  # 17 characters
             if c in alphanum_us: return self._go(230)
-            if c in delim_id:    return self._accept(start, 229, ID)  # 228 -> 229*
+            if c in ID_DELIMITER: return self._accept(start, 229, ID)  # 228 -> 229*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 230:                                  # 18 characters
             if c in alphanum_us: return self._go(232)
-            if c in delim_id:    return self._accept(start, 231, ID)  # 230 -> 231*
+            if c in ID_DELIMITER: return self._accept(start, 231, ID)  # 230 -> 231*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 232:                                  # 19 characters
             if c in alphanum_us: return self._go(234)
-            if c in delim_id:    return self._accept(start, 233, ID)  # 232 -> 233*
+            if c in ID_DELIMITER: return self._accept(start, 233, ID)  # 232 -> 233*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         if state == 234:                                  # 20 characters (the maximum)
-            if c in delim_id:    return self._accept(start, 235, ID)  # 234 -> 235*
+            if c in ID_DELIMITER: return self._accept(start, 235, ID)  # 234 -> 235*
             if c in alphanum_us: return self._error(start, ID_TOO_LONG)  # no edge for a 21st character
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         raise AssertionError(f"unknown TD3 state {state}")
 
     # ============================================ TD4  Integer Literals 236-271
     def _td4_integer_literals(self, state: int, c: str, start: int) -> int:
-        # wharfa_lit: leading zeros (236 / 254 loops) do not count; then 1-8
-        # significant digits. Negatives come from the shared "-" state 141 (TD2).
+        # wharfa_lit: leading zeros do not count; then 1-8 significant digits.
         # ---- positive: 0 --0--> 236, 0 --digit--> 238 ----
         if state == 236:                                  # read "0", "00", ...  leading zeros do not count
-            if c == "0":       return self._go(236)       # loop on 0
+            if c == "0":       return self._go(236)       # adj: keep leading zeros in the lexeme
             if c in digit:     return self._go(238)
-            if c in delim_num: return self._accept(start, 237, WHARFA_LIT)  # 236 -> 237*
+            if c == ".":       return self._go(254)       # adj: decimal point starts a float
+            if c in delim_num or c == EOF: return self._accept(start, 237, WHARFA_LIT)  # 236 -> 237*
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
         if state == 238:                                  # 1 significant digit
             if c in numbers:   return self._go(240)
-            if c in delim_num: return self._accept(start, 239, WHARFA_LIT)  # 238 -> 239*
+            if c == ".":       return self._go(254)       # adj: decimal point starts a float
+            if c in delim_num or c == EOF: return self._accept(start, 239, WHARFA_LIT)  # 238 -> 239*
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
         if state == 240:                                  # 2 significant digits
             if c in numbers:   return self._go(242)
-            if c in delim_num: return self._accept(start, 241, WHARFA_LIT)  # 240 -> 241*
+            if c == ".":       return self._go(254)       # adj: decimal point starts a float
+            if c in delim_num or c == EOF: return self._accept(start, 241, WHARFA_LIT)  # 240 -> 241*
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
         if state == 242:                                  # 3 significant digits
             if c in numbers:   return self._go(244)
-            if c in delim_num: return self._accept(start, 243, WHARFA_LIT)  # 242 -> 243*
+            if c == ".":       return self._go(254)       # adj: decimal point starts a float
+            if c in delim_num or c == EOF: return self._accept(start, 243, WHARFA_LIT)  # 242 -> 243*
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
         if state == 244:                                  # 4 significant digits
             if c in numbers:   return self._go(246)
-            if c in delim_num: return self._accept(start, 245, WHARFA_LIT)  # 244 -> 245*
+            if c == ".":       return self._go(254)       # adj: decimal point starts a float
+            if c in delim_num or c == EOF: return self._accept(start, 245, WHARFA_LIT)  # 244 -> 245*
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
         if state == 246:                                  # 5 significant digits
             if c in numbers:   return self._go(248)
-            if c in delim_num: return self._accept(start, 247, WHARFA_LIT)  # 246 -> 247*
+            if c == ".":       return self._go(254)       # adj: decimal point starts a float
+            if c in delim_num or c == EOF: return self._accept(start, 247, WHARFA_LIT)  # 246 -> 247*
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
         if state == 248:                                  # 6 significant digits
             if c in numbers:   return self._go(250)
-            if c in delim_num: return self._accept(start, 249, WHARFA_LIT)  # 248 -> 249*
+            if c == ".":       return self._go(254)       # adj: decimal point starts a float
+            if c in delim_num or c == EOF: return self._accept(start, 249, WHARFA_LIT)  # 248 -> 249*
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
         if state == 250:                                  # 7 significant digits
             if c in numbers:   return self._go(252)
-            if c in delim_num: return self._accept(start, 251, WHARFA_LIT)  # 250 -> 251*
+            if c == ".":       return self._go(254)       # adj: decimal point starts a float
+            if c in delim_num or c == EOF: return self._accept(start, 251, WHARFA_LIT)  # 250 -> 251*
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
         if state == 252:                                  # 8 significant digits (the maximum)
-            if c in delim_num: return self._accept(start, 253, WHARFA_LIT)  # 252 -> 253*
-            if c in numbers:   return self._error(start, INT_TOO_LONG)  # no edge for a 9th digit
+            if c == ".":       return self._go(254)       # adj: decimal point is allowed after digit eight
+            if c in delim_num or c == EOF: return self._accept(start, 253, WHARFA_LIT)  # 252 -> 253*
+            if c in numbers:   return self._accept(start, 253, WHARFA_LIT, retract=1)  # adj: split before digit nine
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
 
-        # ---- negative (shared state 141 from TD2): 141 --0--> 254, 141 --digit--> 256 ----
-        if state == 254:                                  # read "-0", "-00", ...  leading zeros do not count
-            if c == "0":       return self._go(254)       # loop on 0
+        if state == 254:                                  # read the decimal point
             if c in digit:     return self._go(256)
-            if c in delim_num: return self._accept(start, 255, WHARFA_LIT)  # 254 -> 255*
-            return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
-        if state == 256:                                  # -1 significant digit
+            return self._error(start, "a flo literal needs a digit after '.'")
+        if state == 256:                                  # 1 fraction digit
             if c in numbers:   return self._go(258)
-            if c in delim_num: return self._accept(start, 257, WHARFA_LIT)  # 256 -> 257*
-            return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
-        if state == 258:                                  # -2 significant digits
+            if c in delim_num or c == EOF: return self._accept(start, 257, FLO_LIT)
+            return self._error(start, _cannot_follow(c, "a flo literal", "delim_num"))
+        if state == 258:                                  # 2 fraction digits
             if c in numbers:   return self._go(260)
-            if c in delim_num: return self._accept(start, 259, WHARFA_LIT)  # 258 -> 259*
-            return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
-        if state == 260:                                  # -3 significant digits
+            if c in delim_num or c == EOF: return self._accept(start, 259, FLO_LIT)
+            return self._error(start, _cannot_follow(c, "a flo literal", "delim_num"))
+        if state == 260:                                  # 3 fraction digits
             if c in numbers:   return self._go(262)
-            if c in delim_num: return self._accept(start, 261, WHARFA_LIT)  # 260 -> 261*
-            return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
-        if state == 262:                                  # -4 significant digits
-            if c in numbers:   return self._go(264)
-            if c in delim_num: return self._accept(start, 263, WHARFA_LIT)  # 262 -> 263*
-            return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
-        if state == 264:                                  # -5 significant digits
-            if c in numbers:   return self._go(266)
-            if c in delim_num: return self._accept(start, 265, WHARFA_LIT)  # 264 -> 265*
-            return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
-        if state == 266:                                  # -6 significant digits
-            if c in numbers:   return self._go(268)
-            if c in delim_num: return self._accept(start, 267, WHARFA_LIT)  # 266 -> 267*
-            return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
-        if state == 268:                                  # -7 significant digits
-            if c in numbers:   return self._go(270)
-            if c in delim_num: return self._accept(start, 269, WHARFA_LIT)  # 268 -> 269*
-            return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
-        if state == 270:                                  # -8 significant digits (the maximum)
-            if c in delim_num: return self._accept(start, 271, WHARFA_LIT)  # 270 -> 271*
-            if c in numbers:   return self._error(start, INT_TOO_LONG)  # no edge for a 9th digit
-            return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
+            if c in delim_num or c == EOF: return self._accept(start, 261, FLO_LIT)
+            return self._error(start, _cannot_follow(c, "a flo literal", "delim_num"))
+        if state == 262:                                  # 4 fraction digits (the maximum)
+            if c in delim_num or c == EOF: return self._accept(start, 263, FLO_LIT)
+            if c in numbers:   return self._accept(start, 263, FLO_LIT, retract=1)  # adj: split before fraction digit five
+            return self._error(start, _cannot_follow(c, "a flo literal", "delim_num"))
         raise AssertionError(f"unknown TD4 state {state}")
 
     # ================================= TD5  String Literals and Comments 272-286
@@ -957,15 +1003,14 @@ class Lexer:
             if c == '"':          return self._go(272)    # closing quote
             if c == "\\":         return self._go(274)    # start of an escape
             if c in delim_dqopen - {'"', "\\"}: return self._go(192)  # loop
-            if c == NEWLINE:      return self._error(start, STR_RAW_NEWLINE)
-            if c == EOF:          return self._error(start, STR_NO_CLOSE_DQ)
+            if c in {NEWLINE, EOF}: return self._unterminated_string(start, STR_NO_CLOSE_DQ)
             return self._error_inside(192, _not_ascii(c, "a strina literal"), self.pos)
         if state == 274:                                  # read "\" inside "..."
             if "\\" + c in escape: return self._go(192)  # \" \' \\ \n \t \0
-            if c in {NEWLINE, EOF}:  return self._error(start, STR_NO_CLOSE_DQ)
+            if c in {NEWLINE, EOF}:  return self._unterminated_string(start, STR_NO_CLOSE_DQ)
             return self._error_inside(192, _bad_escape(c), self.pos - 1)
         if state == 272:                                  # read the closing "
-            if c in delim_dqclose: return self._accept(start, 273, STRINA_LIT)  # 272 -> 273*
+            if c in delim_dqclose or c == EOF: return self._accept(start, 273, STRINA_LIT)  # adj: eof may follow a closed string
             return self._error(start, _cannot_follow(c, "a strina literal", "delim_dqclose"))
 
         # ---- strina literal in single quotes: 0 --'--> 194 ----
@@ -973,15 +1018,14 @@ class Lexer:
             if c == "'":          return self._go(275)    # closing quote
             if c == "\\":         return self._go(277)    # start of an escape
             if c in delim_sqopen - {"'", "\\"}: return self._go(194)  # loop
-            if c == NEWLINE:      return self._error(start, STR_RAW_NEWLINE)
-            if c == EOF:          return self._error(start, STR_NO_CLOSE_SQ)
+            if c in {NEWLINE, EOF}: return self._unterminated_string(start, STR_NO_CLOSE_SQ)
             return self._error_inside(194, _not_ascii(c, "a strina literal"), self.pos)
         if state == 277:                                  # read "\" inside '...'
             if "\\" + c in escape: return self._go(194)
-            if c in {NEWLINE, EOF}:  return self._error(start, STR_NO_CLOSE_SQ)
+            if c in {NEWLINE, EOF}:  return self._unterminated_string(start, STR_NO_CLOSE_SQ)
             return self._error_inside(194, _bad_escape(c), self.pos - 1)
         if state == 275:                                  # read the closing '
-            if c in delim_sqclose: return self._accept(start, 276, STRINA_LIT)  # 275 -> 276*
+            if c in delim_sqclose or c == EOF: return self._accept(start, 276, STRINA_LIT)  # adj: eof may follow a closed string
             return self._error(start, _cannot_follow(c, "a strina literal", "delim_sqclose"))
 
         # ---- single-line comment: 0 --'-'--> 141 --'-'--> 278 ----

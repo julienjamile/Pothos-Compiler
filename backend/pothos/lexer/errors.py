@@ -18,4 +18,5 @@ class LexicalError:
         shown = self.text.replace("\n", "\\n").replace("\t", "\\t")
         if len(shown) > 40:
             shown = shown[:37] + "..."
-        return f"Lexical Error [line {self.line}, col {self.column}]: {self.message}: '{shown}'"
+        message = self.message.replace("ASCII", "ascii")
+        return f"Lexical Error [line {self.line}, col {self.column}]: {message}: '{shown}'"

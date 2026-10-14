@@ -48,32 +48,6 @@ delim_num = delim_space | {NEWLINE, ";", "]", "}", ")", ",", ":"} | mathop | rel
 
 alphanum_us = alphanum | underscore
 
-# old names lexer.py still imports - remove once lexer.py is updated
-ascii_str_dq = ascii - {'"', "\\", NEWLINE}
-ascii_str_sq = ascii - {"'", "\\", NEWLINE}
-ascii_comment_sl = ascii - {NEWLINE}
-ml_char_ns = (ascii | {NEWLINE}) - {"-", "/"}
-delim_operand = delim_space | letter | numbers | delim_quote | {"(", "[", "{", "-"}
-delim_int = delim_num
-delim_str = delim_space | {"(", ")", "{", "}", "[", "]", ";", ",", ":"} | mathop | relop_ch
-delim_close = delim_space | {"(", ")", "{", "}", "[", "]", ";", ",", ":"} | mathop | relop_ch
-delim_rbrace = delim_close | {EOF}
-delim_relop = delim_operand
-delim_mathop = delim_operand
-delim_minus = delim_space | letter | numbers | delim_quote | {"(", "[", "{"}
-delim_assops = delim_operand
-delim_reor = delim_space | delim_quote | {"(", "[", "{", "-"}
-delim_flow = delim_space | {"("}
-delim_mcomment_end = ascii | {NEWLINE, EOF}
-delim_open_paren = delim_openparen
-delim_open_brack = delim_openbracket
-delim_open_brace = delim_opencurly
-delim_term = delim_space | letter | {"}", "-", "/", EOF}
-delim_escape = {'"', "'", "\\", "n", "t", "0"}
-delim_minus_no_numbers = delim_minus - numbers
-ascii_comment_sl_no_slash = ascii_comment_sl - {"/"}
-newline_eof = {NEWLINE, EOF}
-
 # in the doc but not used by lexer.py yet - wire up or remove after step 5
 escape = {'\\"', "\\'", "\\\\", "\\n", "\\t", "\\0"}
 special_characters = {

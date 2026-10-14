@@ -102,7 +102,7 @@ python -m unittest tests.test_td4_integers      # a single file
 | `test_td1_reserved_words.py` | reserved words, delimiters, and identifier fallback |
 | `test_td2_symbols.py` | all 26 symbols, `/` retract 2 (state 154), negatives |
 | `test_td3_identifiers.py` | 1–20 characters, `_` rules, delim_id |
-| `test_td4_integers.py` | 1–8 significant digits, leading zeros, delim_int |
+| `test_td4_integers.py` | 1–8 significant digits, leading zeros, delim_num |
 | `test_td5_strings_comments.py` | strings, escapes, both comment kinds |
 | `test_language_examples.py` | representative examples and their lexer outcomes |
 | `test_recovery_and_positions.py` | line/column numbers, many errors in one run |
