@@ -29,6 +29,7 @@ const themeCompartment = new Compartment();
 const sourceStorageKey = "pothos-lexer-source";
 const outputStorageKey = "pothos-lexer-output";
 let tokenRanges = [];
+let renderedSource = null;
 let activeTokenRows = new Set();
 let activeErrorRow = null;
 let autoRunTimer = null;
@@ -168,6 +169,18 @@ function getSourcePosition(lineStarts, sourceLines, line, column) {
     return { start, characterLength: characters[columnIndex]?.length ?? 0 };
 }
 
+function showStaleOutput() {
+    const tokenColumns = traceChk?.checked ? 6 : 5;
+    if (lexerTableBody) {
+        lexerTableBody.innerHTML = `<tr><td colspan="${tokenColumns}">Source changed. Run again to refresh tokens.</td></tr>`;
+    }
+    if (errorTableBody) {
+        errorTableBody.innerHTML = '<tr><td colspan="3">Source changed. Run again to refresh errors.</td></tr>';
+    }
+    tokenRanges = [];
+    setActiveTokenRows([]);
+}
+
 function showErrors(errors, lineStarts, sourceLines) {
     if (!errorTableBody) return;
     errorTableBody.replaceChildren();
@@ -292,6 +305,13 @@ const editor = editorHost
         parent: editorHost,
         extensions: [
             Prec.highest(keymap.of([{
+                key: "Enter",
+                run(view) {
+                    // Insert a plain line break without carrying prior indentation.
+                    view.dispatch(view.state.replaceSelection("\n"));
+                    return true;
+                },
+            }, {
                 key: "Tab",
                 run(view) {
                     view.dispatch(view.state.replaceSelection("\t"));
@@ -352,6 +372,9 @@ const editor = editorHost
                     }
                 }
                 if (!update.docChanged) return;
+                if (renderedSource !== null && update.state.doc.toString() !== renderedSource) {
+                    showStaleOutput();
+                }
                 if (autoRunChk?.checked) scheduleAutoRun();
                 try {
                     localStorage.setItem(sourceStorageKey, update.state.doc.toString());
@@ -507,6 +530,7 @@ function setTableColumns(showPath) {
 }
 
 function renderCompilerResult(result, source, trace) {
+    renderedSource = source;
     const sourceLines = source.split("\n");
     const lineStarts = [];
     let sourceOffset = 0;
@@ -538,7 +562,7 @@ function renderCompilerResult(result, source, trace) {
             row.dataset.end = String(range.end);
             tokenRanges.push({ ...range, row });
         }
-        const displayLexeme = token === "newline" ? "\\n" : token === "tab" ? "\\t" : lexeme;
+        const displayLexeme = token === "space" ? "␠" : token === "newline" ? "\\n" : token === "tab" ? "\\t" : lexeme;
         const cells = [no, displayLexeme, token, line, column];
         if (trace) cells.push(path ?? "");
         cells.forEach((value) => {
@@ -622,6 +646,13 @@ if (runBtn) {
 
             const result = await response.json();
 
+            // Editing can continue while the request is in flight. Ignore a
+            // response for an older editor snapshot instead of showing stale errors.
+            if (editor.state.doc.toString() !== source) {
+                if (autoRunChk?.checked) scheduleAutoRun();
+                return;
+            }
+
             if (!response.ok) {
                 // HTTP 400 / 413 – the backend returned {"error": "..."}
                 const msg = result.error || `HTTP ${response.status}`;
@@ -637,6 +668,10 @@ if (runBtn) {
             saveOutputCache(source, result, skipComments, trace);
         } catch (error) {
             // Network / parse failure – show the real error, no fake fallback.
+            if (editor.state.doc.toString() !== source) {
+                if (autoRunChk?.checked) scheduleAutoRun();
+                return;
+            }
             console.error("Could not submit source code:", error);
             showNetworkError(error);
             if (lexerTableBody) {

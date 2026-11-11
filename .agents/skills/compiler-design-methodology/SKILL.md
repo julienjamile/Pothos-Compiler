@@ -29,6 +29,8 @@ Define character classes and regular definitions before writing the scanner. For
 
 For each token, establish start characters, continuation characters, accepting condition, boundary/lookahead rule, and attributes. Decide from the target specification how to resolve overlapping tokens, often by the longest valid match and rule priority. Do not assume a language uses either policy without checking.
 
+Specify what happens to whitespace explicitly: it may be ignored as trivia, emitted as parser-visible tokens, or retained separately for formatting/diagnostics. Keep this choice consistent across lexer output, parser input, serialization, and UI. If whitespace tokens are displayed, render invisible lexemes with clear markers while preserving their original characters in token data. Test runs of whitespace and source positions; do not assume every language treats spaces, tabs, and line breaks identically.
+
 ### Transition diagrams and scanner code
 
 Represent states and transitions clearly. Each state should explain which input classes advance, which accept, and what happens on invalid input. When code uses numbered states from diagrams, preserve traceability with labels/comments and test transitions, including retraction/reprocessing of lookahead.

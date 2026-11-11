@@ -51,7 +51,10 @@ from compiler import compile_source  # noqa: E402  (after sys.path patch)
 _DIST = os.path.join(_HERE, "dist")
 app = Flask(__name__, static_folder=_DIST, static_url_path="")
 
-_MAX_SOURCE_BYTES = 200 * 1024  # 200 KB
+_MAX_SOURCE_BYTES = 1 * 1024 * 1024  # 1 MB of decoded source text
+# JSON escapes some source characters (such as newlines) and expands the body.
+# Allow that encoding overhead, then enforce the source limit after JSON parsing.
+_MAX_REQUEST_BYTES = 6 * _MAX_SOURCE_BYTES + 8192
 
 
 def _json_response(data: dict, status: int = 200) -> Response:
@@ -95,9 +98,9 @@ def api_post():
         )
 
     # ── Size guard (check raw bytes before parsing) ───────────────────────────
-    if request.content_length is not None and request.content_length > _MAX_SOURCE_BYTES:
+    if request.content_length is not None and request.content_length > _MAX_REQUEST_BYTES:
         return _json_response(
-            {"error": f"Request body exceeds the {_MAX_SOURCE_BYTES // 1024} KB limit"},
+            {"error": "Request body is too large"},
             status=413,
         )
 

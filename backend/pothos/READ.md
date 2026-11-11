@@ -82,6 +82,9 @@ tokens, errors = tokenize(source, skip_comments=True)    # drop comment tokens
 * `Token` fields: `type`, `lexeme`, `line`, `column` (1-based).
 * Token types: a reserved word or symbol is its own type (`belial`, `wharfa`, `==`, `;` …).
   Literals are `id`, `wharfa_lit`, `strina_lit`, `trua_lit` (`Trua` / `Inaccu`).
+  Each recognized source space, tab, and newline is also emitted as `space`, `tab`,
+  or `newline`. The frontend displays a space lexeme as `␠` so it is visible; its
+  actual token lexeme remains the single space character.
   Comments are `comment_sl` (`-- …`) and `comment_ml` (`/-- … --/`).
 * Errors never stop the lexer. It records the error, skips to the next whitespace or
   delimiter, and keeps going, so one run reports every error.

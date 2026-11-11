@@ -51,7 +51,7 @@ from .charsets import (
 from .errors import LexicalError
 from .tokens import (
     Token, ID, WHARFA_LIT, FLO_LIT, STRINA_LIT, TRUA_LIT, COMMENT_SL, COMMENT_ML,
-    NEWLINE_TOKEN, TAB_TOKEN,
+    SPACE_TOKEN, NEWLINE_TOKEN, TAB_TOKEN,
 )
 
 # A complete reserved word followed by a
@@ -133,12 +133,14 @@ class Lexer:
     def run(self) -> Tuple[List[Token], List[LexicalError]]:
         while self.pos < self.n:
             c = self.src[self.pos]
-            if c == SPACE:
-                self.pos += 1
-                continue
-            if c in (NEWLINE, TAB):
+            if c in (SPACE, NEWLINE, TAB):
                 start = self.pos
-                token_type = NEWLINE_TOKEN if c == NEWLINE else TAB_TOKEN
+                if c == SPACE:
+                    token_type = SPACE_TOKEN
+                elif c == TAB:
+                    token_type = TAB_TOKEN
+                else:
+                    token_type = NEWLINE_TOKEN
                 line, col = self._where(start)
                 self.tokens.append(Token(token_type, c, line, col))
                 if self.trace:

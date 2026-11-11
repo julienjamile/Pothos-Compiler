@@ -53,7 +53,9 @@ def test_valid_lexemes(source, expected):
     tokens, errors = lex(source)
 
     assert errors == []
-    assert [(token.type, token.lexeme) for token in tokens] == expected
+    # These grammar examples focus on their non-space lexemes. Dedicated tests
+    # below verify that every source space is emitted as a token too.
+    assert [(token.type, token.lexeme) for token in tokens if token.type != "space"] == expected
 
 
 @pytest.mark.parametrize(
@@ -114,18 +116,50 @@ def test_unclosed_string_recovers_on_next_line():
 
 
 def test_whitespace_token_paths_are_included_when_tracing():
-    lexer = Lexer("\t\n", trace=True)
+    lexer = Lexer(" \t \n", trace=True)
 
     tokens, errors = lexer.run()
 
     assert errors == []
     assert [(token.type, token.lexeme) for token in tokens] == [
+        ("space", " "),
         ("tab", "\t"),
+        ("space", " "),
         ("newline", "\n"),
     ]
     assert [path[3] for path in lexer.paths] == [
+        "whitespace -> space",
         "whitespace -> tab",
+        "whitespace -> space",
         "whitespace -> newline",
+    ]
+
+
+def test_each_space_is_emitted_with_its_source_position():
+    tokens, errors = lex("a  b ")
+
+    assert errors == []
+    assert [(token.type, token.lexeme, token.line, token.column) for token in tokens] == [
+        ("id", "a", 1, 1),
+        ("space", " ", 1, 2),
+        ("space", " ", 1, 3),
+        ("id", "b", 1, 4),
+        ("space", " ", 1, 5),
+    ]
+
+
+def test_space_columns_restart_after_newline():
+    tokens, errors = lex("   \n  x")
+
+    assert errors == []
+    assert [(token.type, token.line, token.column) for token in tokens] == [
+        ("space", 1, 1),
+        ("space", 1, 2),
+        ("space", 1, 3),
+        ("newline", 1, 4),
+        ("space", 2, 1),
+        ("space", 2, 2),
+        ("id", 2, 3),
     ]
 
 

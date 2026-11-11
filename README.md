@@ -173,7 +173,7 @@ When `trace` is `true`, each token also has `"path": "0 -> 72 -> ... 75*"`.
 | Status | Meaning |
 |--------|---------|
 | 400    | Missing/invalid `code` field, bad JSON, or wrong Content-Type |
-| 413    | Source code exceeds the 200 KB limit |
+| 413    | Source code exceeds the 1 MB limit |
 
 ### `GET /api.json`
 

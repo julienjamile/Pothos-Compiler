@@ -75,7 +75,7 @@ When `trace` is `true`, each token also has:
 | HTTP | Body | Reason |
 |------|------|--------|
 | 400  | `{"error": "..."}` | Missing/invalid `code` field, malformed JSON, or wrong Content-Type |
-| 413  | `{"error": "..."}` | Source code > 200 KB |
+| 413  | `{"error": "..."}` | Source code > 1 MB |
 
 ---
 

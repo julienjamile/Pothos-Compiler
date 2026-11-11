@@ -46,7 +46,7 @@ The following fields apply to every card: status, objective, technical backgroun
 - **Specification references:** Paper-wide audit after P-01; existing lexer notes and samples are secondary evidence.
 - **Dependencies:** None; refine after P-01.
 - **Scope/files:** Inspect root README, `backend/pothos/`, `tests/test_lexer.py`, API and scripts. Verify CLI/API invocation and inventory samples. Do not change compiler source in this audit.
-- **Tests:** `.venv/Scripts/python.exe -m pytest tests/test_lexer.py -q`: **52 passed, 8 failed** (2026-11-11). `python backend/pothos/main.py backend/pothos/samples/sample.pths` exited 0 with no lexical errors; the `errors.pths` sample exited 1 and reported 9 errors. Flask test client POST and GET `/api.json` both returned 200; POST `x = 1;` returned the expected lexical tokens and no errors. Build instructions/configuration were inspected but the build was not run because `vite.config.mjs` sets `emptyOutDir: true` and `dist/` contains existing user changes. PowerShell resolved `npm` to a blocked `npm.ps1` script; this is an environment invocation issue, not a verified build failure.
+- **Tests:** `.venv/Scripts/python.exe -m pytest tests/test_lexer.py -q`: **52 passed, 8 failed** (2026-11-11 baseline). `python backend/pothos/main.py backend/pothos/samples/sample.pths` exited 0 with no lexical errors; the `errors.pths` sample exited 1 and reported 9 errors. Flask test client POST and GET `/api.json` both returned 200. A later Vite production build to an isolated `.preview-dist/` directory succeeded; the new JS bundle was added to `dist/` and `dist/index.html` updated to reference it while existing assets were preserved. Normal builds still empty `dist/` per Vite config, so inspect worktree changes before running one.
 - **Acceptance:** Architecture, confirmed CLI/API invocations, test inventory, known failures, README mismatches, and build-test limitation are documented with evidence.
 - **Learning objective:** Understand how unit tests, API integration, and command-line execution cover different layers.
 - **Approval:** Audit required no approval. Any fixes are separate tasks; language or behavior changes require explicit student confirmation under D-005.
@@ -60,7 +60,7 @@ The following fields apply to every card: status, objective, technical backgroun
 - **Dependencies:** P-01, P-02.
 - **Scope/files:** Compare `lexer.py`, `tokens.py`, `charsets.py`, existing tests/samples and notes. Check keyword boundaries, longest/special symbol handling, identifiers, integer/fraction limits, strings/escapes, comments (including Unicode), whitespace, EOF and retract paths. Initial conflicts include Unicode policy inside strings/comments and which phase rejects unary plus. Classify outcomes as verified, unverified, missing, inconsistent, or unclear; do not fix them in the audit. Record findings in `LEXER_AUDIT.md`.
 - **Tests:** Maintain a rule-to-case matrix; run lexer regression suite; a read-only catalog check for 54 reserved-word/symbol entries passed, but does not cover transition edges. No implementation or test changes are part of this audit.
-- **Acceptance:** Each paper lexical rule maps to code path and current test coverage, with mismatches and unverified scanned-diagram details explicitly recorded. P-03 remains In Progress until pages 66–83 are visually checked and the 34 existing lexer decision notes are reconciled.
+- **Acceptance:** Each paper lexical rule maps to code path and current test coverage, with mismatches and unverified scanned-diagram details explicitly recorded. P-03 remains In Progress until current-paper lexical pages 67–84 are visually checked and the 34 existing lexer decision notes are reconciled.
 - **Learning objective:** Trace a concrete input character-by-character through transition logic and explain acceptance/retraction.
 - **Approval:** Audit independent; behavior fixes need an approved P-04/P-05 scope.
 
@@ -79,16 +79,17 @@ The following fields apply to every card: status, objective, technical backgroun
 
 ### P-05 — Complete approved lexer corrections and regression suite
 
-- **Status:** Pending
+- **Status:** In Progress (whitespace-token output and requested editor/API usability fixes implemented; remaining lexer corrections await their own review)
 - **Objective:** Bring lexer behavior into line with approved Pothos rules while preserving verified behavior.
+- **Current scoped item:** D-006 emits recognized spaces as `space` tokens and renders them as `␠`. Additional lexer UI work tracks stale asynchronous output, starts new editor lines at column 1, and raises the API source limit from 200 KB to 1 MB. These presentation/capacity changes do not revise Pothos lexical rules. The rest of P-05 remains open.
 - **Technical background:** Scanner correctness is validated at character-class boundaries, token boundaries, EOF, errors, and recovery points.
 - **Specification references:** Approved lexical rules from P-01/P-04.
-- **Dependencies:** P-02, P-03, P-04.
-- **Scope/files:** Only approved minimal changes in `backend/pothos/lexer/{lexer.py,charsets.py,tokens.py,errors.py}` and focused tests. Keep language rule data findable; avoid refactoring unrelated logic.
-- **Tests:** Valid/invalid examples per rule, min/max lengths, each transition/retract, EOF, line/column, multiple errors/recovery, Unicode policy, keyword prefixes, API serialization and full lexer regression.
+- **Dependencies:** P-02, P-03, P-04 for paper/compiler corrections. A separately student-approved output requirement may be implemented as a narrow scoped change while unrelated P-04 discrepancies remain blocked.
+- **Scope/files:** Only approved minimal changes in `backend/pothos/lexer/{lexer.py,charsets.py,tokens.py,errors.py}`, `frontend/script.js`, and focused tests. Keep language rule data findable; avoid refactoring unrelated logic.
+- **Tests:** Valid/invalid examples per rule, min/max lengths, each transition/retract, EOF, line/column, multiple errors/recovery, Unicode policy, keyword prefixes, API serialization and full lexer regression. For whitespace-token display, verify each recognized whitespace character, repeated spaces and source positions; ensure the UI uses a visible marker for blank lexemes.
 - **Acceptance:** Approved rule matrix passes; no unexplained regression; exact test command/output recorded; student can explain changed transitions.
 - **Learning objective:** Relate character sets and accepting states to observable tokens and errors.
-- **Approval:** Behavior changes only within P-04-approved decisions.
+- **Approval:** Behavior changes only within P-04-approved decisions or a separately explicit student instruction recorded in `DECISIONS.md`.
 
 ### P-06 — Verify lexer API, pipeline, and frontend consistency
 

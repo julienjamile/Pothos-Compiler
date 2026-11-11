@@ -27,6 +27,7 @@ complete program.
 | Input | Expected output | State function |
 |---|---|---|
 | `flo x;` | `flo("flo")`, `id("x")`, `;(";")` | `_td1_reserved_words`, `_td2_reserved_symbols`, `_td3_identifiers` |
+| `a b` | `id("a")`, `space(" ")`, `id("b")`; the browser displays the middle lexeme as `␠` | `Lexer.run` emits the whitespace token between calls to `_scan_token` |
 | `12.5;` | `flo_lit("12.5")`, `;(";")`; the serialized value is `12.5` | `_td4_integer_literals`, `_td2_reserved_symbols` |
 | `msg = "a\nb";` | `id("msg")`, `=("=")`, `strina_lit("\"a\\nb\"")`, `;(";")` | `_td2_reserved_symbols`, `_td3_identifiers`, `_td5_strings_comments` |
 | `/-- note`<br>`inside --/` | one `comment_ml` token containing both lines | `_td5_strings_comments` |

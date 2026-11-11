@@ -62,6 +62,18 @@ This log records decisions evidenced by approved sources or explicitly approved 
 - **Specification references:** Paper pp. 6, 17, 19–20, 42–43, 67–84; OCR navigation in SPECIFICATION_INDEX.md. Inspect the PDF page image before relying on ambiguous glyphs.
 - **Status:** Awaiting Approval.
 
+## D-006 — Emit whitespace as visible lexer tokens
+
+- **Date:** 2026-11-12
+- **Topic:** Lexer output and student-facing token display
+- **Context:** Ordinary spaces were skipped by `Lexer.run`; tabs and newlines already appeared as tokens. A literal space would also be visually blank in the frontend token table.
+- **Options considered:** Keep spaces as ignored separators; show whitespace only as a frontend overlay; emit whitespace tokens and render spaces with a visible marker.
+- **Selected decision:** Per the student's explicit instruction, emit every currently recognized source whitespace character (space, tab, newline) as a lexer token and show a literal space as `␠` in the frontend. Preserve the actual whitespace character as the token lexeme.
+- **Reasoning:** The student wants to see that spaces are tokenized in the lexer output. Retaining the actual lexeme keeps source positions and token data accurate; the UI marker makes the space visible.
+- **Affected components or files:** `backend/pothos/lexer/lexer.py`, `backend/pothos/lexer/tokens.py`, `frontend/script.js`, lexer tests, lexer documentation, and the future parser's input contract.
+- **Specification references:** Student-approved output requirement. The scanned Pothos paper's exact whitespace treatment has not been visually verified; this decision does not claim the paper defines a whitespace token class.
+- **Status:** Approved (student instruction); paper conformance and future parser handling remain to be verified.
+
 ## Awaiting decisions
 
 - Parser strategy and whether FIRST, FOLLOW, PREDICT, or parsing tables are required: see P-08.

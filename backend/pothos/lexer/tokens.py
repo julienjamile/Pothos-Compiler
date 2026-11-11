@@ -6,7 +6,7 @@ Token types:
   * reserved symbols use the symbol itself, e.g. "+=", "(", and ";".
   * identifiers, literals, and comments use id, wharfa_lit, flo_lit,
     strina_lit, trua_lit, comment_sl, and comment_ml.
-  * newline and tab characters outside other tokens use newline and tab.
+  * source whitespace outside other tokens use space, tab, and newline.
   * Trua and Inaccu are both trua_lit, so the parser treats them
     like any other literal.
   * A minus sign is never part of a number; -5 is '-' then
@@ -28,6 +28,7 @@ COMMENT_SL = "comment_sl"
 COMMENT_ML = "comment_ml"
 NEWLINE_TOKEN = "newline"
 TAB_TOKEN = "tab"
+SPACE_TOKEN = "space"
 
 # Reserved words recognized by the lexer
 RESERVED_WORDS = (

@@ -28,7 +28,7 @@ The current paper is `Latest_Pothos_ProgrammingLanguage.pdf`, a 118-page scanned
 - `backend/pothos/samples/`: sample inputs.
 - `tests/test_lexer.py`: current repository-level lexer tests.
 - `app.py`, `frontend/`, `scripts/`: API, browser interface and setup/build/run scripts.
-- `Latest_Pothos_ProgrammingLanguage.pdf`: current paper snapshot path; currently absent from the worktree.
+- `Latest_Pothos_ProgrammingLanguage.pdf`: current 118-page paper snapshot at repository root; verify its fingerprint in SPECIFICATION_INDEX.md before relying on page references.
 - `SPECIFICATION_INDEX.md`: paper revision fingerprint, page map, and verified rule index (not a replacement specification).
 - `LEXER_AUDIT.md`: current lexer rule-to-code-to-test audit and remaining verification work.
 - `backend/pothos/READ.md`, `WALKTHROUGH.md`, `DECISIONS.md`: existing lexer documentation; check each against implementation before relying on it.

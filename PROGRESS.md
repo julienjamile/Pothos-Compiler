@@ -1,7 +1,7 @@
 # Pothos project progress
 
-**As of:** 2026-11-11  
-**Overall status:** P-01's paper snapshot/index and P-02 are complete. The lexer is the active focus: P-03 has a code/test audit record and the regression suite currently has 8 failures. The current 118-page paper is present and fingerprinted; P-03 still needs visual comparison of scanned transition diagrams and delimiter tables. Later syntax and semantic tasks are deferred.
+**As of:** 2026-11-12
+**Overall status:** P-01's paper snapshot/index and P-02 are complete. The lexer remains the active focus. P-03's code/test audit exists but still needs visual comparison of scanned transition diagrams and delimiter tables. P-05 is in progress for the student-approved whitespace-token display requirement. The current 118-page paper is present and fingerprinted. Later syntax and semantic tasks are deferred.
 
 ## Completed
 
@@ -11,11 +11,12 @@
 
 ## Current task
 
+- **P-05 — Lexer/editor usability refinements:** D-006 covers visible whitespace tokens. Current fixes also address stale results while editing, Enter indentation, and the API input-size limit. Regression results are recorded below.
 - **P-03 — Audit lexer state transitions and token recognition:** current implementation map, rule-to-code-to-test matrix, conflicts and remaining checks are in LEXER_AUDIT.md. Full diagram/table verification remains unfinished.
 
 ## Pending
 
-- P-05 lexer corrections after approved P-04 decisions.
+- Remaining P-05 lexer corrections after their own review and approval; D-006 covers only whitespace token output.
 - P-06 API/pipeline/frontend consistency audit.
 - P-09 syntax phase implementation.
 - P-11 semantic phase implementation.
@@ -30,17 +31,23 @@
 
 ## Known issues and evidence
 
-- `.venv/Scripts/python.exe -m pytest tests/test_lexer.py -q` on 2026-11-11: **8 failed, 52 passed**. Failures include EOF after `]` and `)`, plus the `+25` expectation; inspect full pytest output and `backend/pothos/DECISIONS.md` before changing behavior.
+- `.venv/Scripts/python.exe -m pytest tests/test_lexer.py -q` on 2026-11-12: **8 failed, 54 passed**. The whitespace-token and newline-column tests pass; the 8 existing failures remain the prior EOF-after-`]`/`)` cases and `+25` expectation. No new failure was introduced by this change.
+- Flask test-client POST `/api.json` with `{"code":"a b"}` returned 200 and serialized `id("a")`, `space(" ")`, `id("b")` at columns 1, 2, and 3.
+- Normal float inputs `0.5`, `1.2`, `12.5`, and `flo amount = 12.5;` returned no lexical errors through Flask. A dot without a following digit still correctly errors. Frontend now ignores late responses for old source and marks prior results stale when the editor changes, avoiding confusion between an intermediate `1.` error and the current complete literal.
+- Newline plus indentation smoke input returned line 2 space tokens beginning at column 1; editor Enter now inserts a plain newline without copying prior indentation.
+- API source limit increased from 200 KB to 1 MB. Frontend token-table performance with very large, whitespace-heavy inputs remains unmeasured.
+- API boundary smoke check: a 250,000-byte source reached lexical analysis (HTTP 200); a source of 1 MB + 1 byte was rejected with HTTP 413.
+- Flask GET `/` returned the updated asset reference, and GET `/assets/index-BVKG6lxD.js` returned HTTP 200.
 - The globally resolved `python` is `C:\Python314\python.exe` and has no pytest; use the project interpreter at `.venv/Scripts/python.exe` for repeatable test runs.
 - CLI baseline: current `sample.pths` runs without lexical errors. The `errors.pths` sample exits 1 and reports 9 lexical errors, while root README describes an 11-error sample/test collection.
 - Flask test-client smoke check: GET and POST `/api.json` both returned 200; POST `x = 1;` serialized the expected tokens. No HTTP server was started.
-- Frontend build was not run: `vite.config.mjs` sets `emptyOutDir: true`, and `dist/` already contains user-modified and untracked assets. PowerShell also resolved `npm` to `npm.ps1`, blocked by the local script policy. Preserve `dist/` and resolve invocation safely before a future build check.
+- Vite production build succeeded to isolated `.preview-dist/`; its new JS bundle was copied to `dist/assets/index-BVKG6lxD.js`, and `dist/index.html` now references it. Existing generated assets were retained. A normal build still empties `dist/`, so review worktree changes before running one.
 - `README.md` describes `back-end/` and test suites/commands that do not match the current `backend/pothos/` and root `tests/test_lexer.py` layout.
 - `backend/pothos/compiler/phases.py` contains `SyntaxPhase` and `SemanticPhase` placeholders that raise `NotImplementedError`; `pipeline.py` enables only `LexicalPhase`.
 - Paper p. 17 permits non-ASCII content inside strings and comments, while current lexer logic rejects non-ASCII characters in both; see D-005.
 - Paper p. 19 says unary plus is unsupported and produces a syntax error. Current lexer emits `+` and a number; one current lexer test expects a lexical error. The phase/error-level expectation needs a student choice and parser context; see D-005.
 - A read-only catalog check recognized all 54 entries in `RESERVED_WORDS` and `RESERVED_SYMBOLS` as isolated tokens with a following space. This does not verify all transition or delimiter behavior.
-- LEXER_AUDIT.md maps character classes, keyword/symbol tokens, identifiers, numbers, strings/comments, delimiters/EOF, whitespace, positions and recovery to code and current tests. Scanned transition diagrams and exact delimiter-table entries still need visual comparison; OCR is not sufficient for arrow/symbol details.
+- LEXER_AUDIT.md maps character classes, keyword/symbol tokens, identifiers, numbers, strings/comments, delimiters/EOF, whitespace, positions and recovery to code and current tests. D-006 makes each recognized space, tab, and newline an output token; future parser work must explicitly handle or discard these trivia tokens. Scanned transition diagrams and exact delimiter-table entries still need visual comparison; OCR is not sufficient for arrow/symbol details.
 - The current PDF SHA-256 differs from the previously indexed snapshot. Page counts and navigation have been updated in SPECIFICATION_INDEX.md and roadmap references. OCR suggests a one-page shift in lexical material; exact wording and transition-diagram comparison remain open under P-03.
 - Paper pp. 19–20 say excess integer digits are separately tokenized and syntax analysis rejects consecutive numeric tokens; current lexer behavior appears consistent with this division of responsibility.
 - Paper p. 6 describes compiling a `.pths` file to an executable, while the current repository implements a lexer API/pipeline only. Confirm the course deliverable/toolchain before deciding whether code generation is required.
@@ -56,4 +63,4 @@
 
 ## Next task
 
-Continue P-03 by visually comparing current paper pp. 67–84 against LEXER_AUDIT.md; then complete exact test traceability and reconcile the 34 entries in `backend/pothos/DECISIONS.md`. Present behavior discrepancies as choices for the student. Do not change compiler logic or paper rules before explicit confirmation.
+Continue P-03 by visually comparing current paper pp. 67–84 against LEXER_AUDIT.md; then complete exact test traceability and reconcile the 34 entries in `backend/pothos/DECISIONS.md`. Present other behavior discrepancies as choices for the student. Do not change compiler logic or paper rules before explicit confirmation.
