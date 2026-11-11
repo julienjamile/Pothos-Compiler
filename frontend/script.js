@@ -538,7 +538,8 @@ function renderCompilerResult(result, source, trace) {
             row.dataset.end = String(range.end);
             tokenRanges.push({ ...range, row });
         }
-        const cells = [no, lexeme, token, line, column];
+        const displayLexeme = token === "newline" ? "\\n" : token === "tab" ? "\\t" : lexeme;
+        const cells = [no, displayLexeme, token, line, column];
         if (trace) cells.push(path ?? "");
         cells.forEach((value) => {
             const cell = document.createElement("td");

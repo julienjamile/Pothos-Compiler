@@ -40,10 +40,12 @@ def lex(source):
         ("-- note", [("comment_sl", "-- note")]),
         ("--", [("comment_sl", "--")]),
         ("/-- a - b -- c ---/", [("comment_ml", "/-- a - b -- c ---/")]),
-        ("x;\n", [("id", "x"), (";", ";")]),
-        ("elsa {\n", [("elsa", "elsa"), ("{", "{")]),
-        ("inpub()\n", [("inpub", "inpub"), ("(", "("), (")", ")")]),
-        ("grid[0]\n", [("id", "grid"), ("[", "["), ("wharfa_lit", "0"), ("]", "]")]),
+        ("x;\n", [("id", "x"), (";", ";"), ("newline", "\n")]),
+        ("elsa {\n", [("elsa", "elsa"), ("{", "{"), ("newline", "\n")]),
+        ("inpub()\n", [("inpub", "inpub"), ("(", "("), (")", ")"), ("newline", "\n")]),
+        ("grid[0]\n", [("id", "grid"), ("[", "["), ("wharfa_lit", "0"), ("]", "]"), ("newline", "\n")]),
+        ("prin\t(\"ok\")", [("prin", "prin"), ("tab", "\t"), ("(", "("), ("strina_lit", '"ok"'), (")", ")")]),
+        ("a \t\nb", [("id", "a"), ("tab", "\t"), ("newline", "\n"), ("id", "b")]),
         ("elsa {}", [("elsa", "elsa"), ("{", "{"), ("}", "}")]),
     ],
 )
@@ -106,7 +108,24 @@ def test_unclosed_string_recovers_on_next_line():
     assert len(errors) == 1
     assert (errors[0].line, errors[0].column, errors[0].text) == (1, 1, '"unclosed')
     assert [(token.type, token.lexeme, token.line, token.column) for token in tokens] == [
+        ("newline", "\n", 1, 10),
         ("id", "next", 2, 1)
+    ]
+
+
+def test_whitespace_token_paths_are_included_when_tracing():
+    lexer = Lexer("\t\n", trace=True)
+
+    tokens, errors = lexer.run()
+
+    assert errors == []
+    assert [(token.type, token.lexeme) for token in tokens] == [
+        ("tab", "\t"),
+        ("newline", "\n"),
+    ]
+    assert [path[3] for path in lexer.paths] == [
+        "whitespace -> tab",
+        "whitespace -> newline",
     ]
 
 

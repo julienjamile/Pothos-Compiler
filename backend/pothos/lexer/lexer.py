@@ -51,6 +51,7 @@ from .charsets import (
 from .errors import LexicalError
 from .tokens import (
     Token, ID, WHARFA_LIT, FLO_LIT, STRINA_LIT, TRUA_LIT, COMMENT_SL, COMMENT_ML,
+    NEWLINE_TOKEN, TAB_TOKEN,
 )
 
 # A complete reserved word followed by a
@@ -130,12 +131,20 @@ class Lexer:
 
     # ------------------------------------------------------------------ driver
     def run(self) -> Tuple[List[Token], List[LexicalError]]:
-        while True:
-            # Whitespace between tokens is skipped (it is a delimiter, not a token).
-            while self.pos < self.n and self.src[self.pos] in whitespace:
+        while self.pos < self.n:
+            c = self.src[self.pos]
+            if c == SPACE:
                 self.pos += 1
-            if self.pos >= self.n:
-                break
+                continue
+            if c in (NEWLINE, TAB):
+                start = self.pos
+                token_type = NEWLINE_TOKEN if c == NEWLINE else TAB_TOKEN
+                line, col = self._where(start)
+                self.tokens.append(Token(token_type, c, line, col))
+                if self.trace:
+                    self.paths.append((line, col, c, f"whitespace -> {token_type}"))
+                self.pos += 1
+                continue
             self._scan_token()
         return self.tokens, self.errors
 
@@ -275,7 +284,7 @@ class Lexer:
         if self.trace:
             self._path.append("error")
             self._save_path(start, text)
-        self.pos = line_end + (line_end < self.n)
+        self.pos = line_end
         return END
 
     def _restart_at_196(self, start: int) -> int:
