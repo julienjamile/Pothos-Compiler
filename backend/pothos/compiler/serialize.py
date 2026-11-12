@@ -41,9 +41,9 @@ def token_to_dict(token: "Token", no: int, path: str | None = None) -> dict:
         "column": token.column,
     }
     if token.type == "wharfa_lit":
-        d["value"] = int(token.lexeme)
+        d["value"] = token.value if token.value is not None else int(token.lexeme)
     elif token.type == "flo_lit":
-        d["value"] = float(token.lexeme)
+        d["value"] = token.value if token.value is not None else float(token.lexeme)
     if path is not None:
         d["path"] = path
     return d

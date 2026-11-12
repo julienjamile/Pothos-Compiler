@@ -242,6 +242,30 @@ function getTokenRange(lineStarts, sourceLines, line, column, lexeme) {
     return { start, end };
 }
 
+function tokensForDisplay(tokens, source, lineStarts, sourceLines) {
+    if (!autoRunChk?.checked || tokens.length === 0) return tokens;
+
+    const finalToken = tokens[tokens.length - 1];
+    const range = getTokenRange(
+        lineStarts,
+        sourceLines,
+        finalToken.line,
+        finalToken.column,
+        finalToken.lexeme,
+    );
+    if (!range || range.end !== source.length) return tokens;
+
+    // Auto-run treats the editor's current end as an editing boundary, not as
+    // a delimiter the student has typed. Keep completed trivia/comments visible.
+    const needsFollowingDelimiter = finalToken.token === "id"
+        || finalToken.token === "wharfa_lit"
+        || finalToken.token === "flo_lit"
+        || finalToken.token === "strina_lit"
+        || finalToken.token === "trua_lit"
+        || reservedWords.has(finalToken.token);
+    return needsFollowingDelimiter ? tokens.slice(0, -1) : tokens;
+}
+
 function setActiveTokenRows(rows, scrollRow = null, behavior = "smooth", verticalRatio = null) {
     const nextRows = new Set(rows.filter(Boolean));
     const wasActive = scrollRow && activeTokenRows.has(scrollRow);
@@ -372,7 +396,7 @@ const editor = editorHost
                     }
                 }
                 if (!update.docChanged) return;
-                if (renderedSource !== null && update.state.doc.toString() !== renderedSource) {
+                if (!autoRunChk?.checked && renderedSource !== null && update.state.doc.toString() !== renderedSource) {
                     showStaleOutput();
                 }
                 if (autoRunChk?.checked) scheduleAutoRun();
@@ -546,14 +570,16 @@ function renderCompilerResult(result, source, trace) {
     setActiveTokenRows([]);
     if (!lexerTableBody || !Array.isArray(tokens)) return;
 
+    const displayTokens = tokensForDisplay(tokens, source, lineStarts, sourceLines);
+
     lexerTableBody.replaceChildren();
-    if (tokens.length === 0) {
+    if (displayTokens.length === 0) {
         const colSpan = trace ? 6 : 5;
-        lexerTableBody.innerHTML = `<tr><td colspan="${colSpan}">No tokens</td></tr>`;
+        lexerTableBody.innerHTML = `<tr><td colspan="${colSpan}">${tokens.length ? "Waiting for a delimiter" : "No tokens"}</td></tr>`;
         return;
     }
 
-    tokens.forEach(({ no, lexeme, token, line, column, path }) => {
+    displayTokens.forEach(({ no, lexeme, token, line, column, path }) => {
         const row = document.createElement("tr");
         row.dataset.line = String(line);
         const range = getTokenRange(lineStarts, sourceLines, line, column, lexeme);
@@ -562,7 +588,7 @@ function renderCompilerResult(result, source, trace) {
             row.dataset.end = String(range.end);
             tokenRanges.push({ ...range, row });
         }
-        const displayLexeme = token === "space" ? "␠" : token === "newline" ? "\\n" : token === "tab" ? "\\t" : lexeme;
+        const displayLexeme = token === "space" ? " " : token === "newline" ? "\\n" : token === "tab" ? "\\t" : lexeme;
         const cells = [no, displayLexeme, token, line, column];
         if (trace) cells.push(path ?? "");
         cells.forEach((value) => {

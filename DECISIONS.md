@@ -68,11 +68,35 @@ This log records decisions evidenced by approved sources or explicitly approved 
 - **Topic:** Lexer output and student-facing token display
 - **Context:** Ordinary spaces were skipped by `Lexer.run`; tabs and newlines already appeared as tokens. A literal space would also be visually blank in the frontend token table.
 - **Options considered:** Keep spaces as ignored separators; show whitespace only as a frontend overlay; emit whitespace tokens and render spaces with a visible marker.
-- **Selected decision:** Per the student's explicit instruction, emit every currently recognized source whitespace character (space, tab, newline) as a lexer token and show a literal space as `␠` in the frontend. Preserve the actual whitespace character as the token lexeme.
+- **Selected decision:** Per the student's explicit instruction, emit every currently recognized source whitespace character (space, tab, newline) as a lexer token. Preserve the actual whitespace character as the token lexeme and render the space lexeme as a literal blank in the frontend table.
 - **Reasoning:** The student wants to see that spaces are tokenized in the lexer output. Retaining the actual lexeme keeps source positions and token data accurate; the UI marker makes the space visible.
 - **Affected components or files:** `backend/pothos/lexer/lexer.py`, `backend/pothos/lexer/tokens.py`, `frontend/script.js`, lexer tests, lexer documentation, and the future parser's input contract.
 - **Specification references:** Student-approved output requirement. The scanned Pothos paper's exact whitespace treatment has not been visually verified; this decision does not claim the paper defines a whitespace token class.
 - **Status:** Approved (student instruction); paper conformance and future parser handling remain to be verified.
+
+## D-007 — Resolve zero-leading fractional digits and fractional truncation
+
+- **Date:** 2026-11-12
+- **Topic:** Flo literal lexical rules
+- **Context:** Current `digit` is `1`–`9`, which correctly counts significant integer digits, but state 254 also uses it for the first fractional digit. Therefore `1.00001` and `0.00000` currently report “needs a digit after '.'”. The current four-fraction-digit state also accepts a fifth digit by retracting it, so `1.23456` becomes `flo_lit("1.2345")` followed by `wharfa_lit("6")`.
+- **Paper evidence:** Current fingerprinted paper pp. 20–21 says a flo literal requires a digit on both sides of the decimal point; the fractional part is capped at four digits; trailing fractional zeros count toward that cap and are only trimmed when printed/formatted; and fifth-and-later fractional digits are discarded by truncation, without rounding or a lexer error. Page 22 lists `1.23456` as an invalid example (“fractional cap exceeded”), conflicting with p. 21.
+- **Options considered:** (1) Fix the clear zero-digit defect, then follow p. 21 by accepting/truncating excess fraction digits without rounding and revise p. 22's contrary example/test after confirming the scan. (2) Fix the clear zero-digit defect, but follow p. 22 by rejecting a literal with more than four fractional digits, updating p. 21/test to match. (3) Adopt the student's suggested trailing-zero/rounding interpretation and revise the paper only after specifying exactly which zeros count and whether literals truncate or round. (4) Keep current behavior pending a different interpretation.
+- **Selected decision:** **Approved — option 1 (2026-11-12).** Follow p. 21: require at least one digit on both sides of `.`, count all fractional digits including zeroes, retain at most the first four fractional digits in the numeric value, and silently truncate later digits without rounding. The lexer keeps the complete source lexeme for display and separately supplies the truncated numeric value. This approval resolves implementation direction while retaining the p. 22 inconsistency as a paper issue to review in a future revision.
+- **Affected components or files:** `backend/pothos/lexer/lexer.py`, `backend/pothos/lexer/tokens.py`, `backend/pothos/compiler/serialize.py`, `tests/test_lexer.py`, `LEXER_AUDIT.md`, `PROGRESS.md`, `DEVELOPMENT.md`.
+- **Specification references:** Current paper pp. 19–22; OCR-derived rule map in SPECIFICATION_INDEX.md. Current PDF SHA-256: `6439B2D9A778B226A7AA80FFCE6699B3DE9B5545B3D7D7E7930298E7D3D40F2F`.
+- **Status:** Approved; implementation complete, regression suite has known unrelated failures.
+
+## D-008 — Withhold an unterminated final token in auto-run preview
+
+- **Date:** 2026-11-12
+- **Topic:** Live lexer table and delimiter lookahead
+- **Context:** Auto-run submits the editor snapshot to the normal lexer. The lexer treats EOF as a delimiter for identifiers (`ID_DELIMITER = delim_id | {EOF}`), so typing `M` immediately displays an `id` token even though no source delimiter has been entered. The Pothos paper's category-specific delimiter tables are the authority for typed delimiters; manual whole-file lexing still needs its existing EOF behavior.
+- **Options considered:** (1) In auto-run presentation only, withhold a final identifier, reserved word, boolean, numeric literal, or string literal ending exactly at the current editor boundary; keep compiler/CLI/manual Run EOF semantics. (2) Remove EOF acceptance from compiler rules, changing complete-file behavior and requiring a separate language decision.
+- **Selected decision:** **Approved — option 1 (2026-11-12).** Auto-run hides a final token from those delimited token categories while it ends exactly at the editor boundary. Typing a valid following delimiter moves it out of the pending position and makes it visible. Whitespace and comment tokens remain visible. Manual Run and compiler behavior continue to treat EOF as before.
+- **Reasoning:** This provides the requested delimiter-aware live table without changing Pothos source acceptance or the compiler's whole-file contract.
+- **Affected components or files:** `frontend/script.js`, `PROGRESS.md`, `DEVELOPMENT.md`.
+- **Specification references:** Paper delimiter tables pp. 74–77; scanner's EOF handling in `backend/pothos/lexer/lexer.py` and `backend/pothos/lexer/charsets.py`.
+- **Status:** Approved; implementation recorded, browser behavior not yet manually verified.
 
 ## Awaiting decisions
 

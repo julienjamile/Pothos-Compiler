@@ -67,6 +67,7 @@ class Token:
     lexeme: str     # exact source text, e.g. "0100", "\"Hi\\n\"", "12.5"
     line: int       # 1-based line of the first character
     column: int     # 1-based column of the first character
+    value: int | float | None = None  # normalized numeric value, when applicable
 
     def __str__(self):
         return f"{self.line}:{self.column} {self.type} {self.lexeme!r}"

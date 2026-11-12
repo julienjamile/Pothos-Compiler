@@ -241,6 +241,10 @@ body {
     border-bottom: 1px solid var(--card-border);
 }
 
+#lexerbox table td:nth-child(2) {
+    white-space: pre;
+}
+
 #lexerbox table th {
     color: var(--font-color);
     font-weight: 700;

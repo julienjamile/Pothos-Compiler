@@ -17,7 +17,7 @@ def lex(source):
         ("0.5", [("flo_lit", "0.5")]),
         ("12345678.5", [("flo_lit", "12345678.5")]),
         ("123456789", [("wharfa_lit", "12345678"), ("wharfa_lit", "9")]),
-        ("1.12345", [("flo_lit", "1.1234"), ("wharfa_lit", "5")]),
+        ("1.12345", [("flo_lit", "1.12345")]),
         ("[1, 2]", [("[", "["), ("wharfa_lit", "1"), (",", ","), ("wharfa_lit", "2"), ("]", "]")]),
         ('{"a": 1}', [("{", "{"), ("strina_lit", '"a"'), (":", ":"), ("wharfa_lit", "1"), ("}", "}")]),
         ("add(3, 4)", [("id", "add"), ("(", "("), ("wharfa_lit", "3"), (",", ","), ("wharfa_lit", "4"), (")", ")")]),
@@ -78,6 +78,27 @@ def test_leading_zero_integer_value_is_dropped():
     integer = next(token for token in tokens if token.type == "wharfa_lit")
     assert integer.lexeme == "007"
     assert token_to_dict(integer, 1)["value"] == 7
+
+
+@pytest.mark.parametrize(
+    ("source", "expected_value"),
+    [
+        ("1.00001", 1.0),
+        ("0.00000", 0.0),
+        ("1.2300", 1.23),
+        ("1.23000", 1.23),
+        ("1.23456", 1.2345),
+        ("1.99999", 1.9999),
+    ],
+)
+def test_float_fraction_is_truncated_to_four_places(source, expected_value):
+    tokens, errors = lex(source)
+
+    assert errors == []
+    assert len(tokens) == 1
+    assert tokens[0].type == "flo_lit"
+    assert tokens[0].lexeme == source
+    assert token_to_dict(tokens[0], 1)["value"] == expected_value
 
 
 @pytest.mark.parametrize(

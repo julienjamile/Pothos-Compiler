@@ -222,7 +222,15 @@ class Lexer:
         is_comment = token_type in (COMMENT_SL, COMMENT_ML)
         if not self._bad and not (is_comment and self.skip_comments):
             line, col = self._where(start)
-            self.tokens.append(Token(token_type, lexeme, line, col))
+            value = None
+            if token_type == FLO_LIT:
+                # Preserve the source spelling while storing the specified
+                # four-place truncated numeric value for downstream phases.
+                whole, fraction = lexeme.split(".", 1)
+                value = float(f"{whole}.{fraction[:4]}")
+            elif token_type == WHARFA_LIT:
+                value = int(lexeme)
+            self.tokens.append(Token(token_type, lexeme, line, col, value))
         if self.trace:
             self._path.append(f"{final_state}{'*' * retract}")
             self._save_path(start, lexeme)
@@ -987,7 +995,7 @@ class Lexer:
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
 
         if state == 254:                                  # read the decimal point
-            if c in digit:     return self._go(256)
+            if c in numbers:   return self._go(256)
             return self._error(start, "a flo literal needs a digit after '.'")
         if state == 256:                                  # 1 fraction digit
             if c in numbers:   return self._go(258)
@@ -1003,7 +1011,11 @@ class Lexer:
             return self._error(start, _cannot_follow(c, "a flo literal", "delim_num"))
         if state == 262:                                  # 4 fraction digits (the maximum)
             if c in delim_num or c == EOF: return self._accept(start, 263, FLO_LIT)
-            if c in numbers:   return self._accept(start, 263, FLO_LIT, retract=1)  # adj: split before fraction digit five
+            if c in numbers:   return self._go(264)       # consume excess digits; value keeps four places
+            return self._error(start, _cannot_follow(c, "a flo literal", "delim_num"))
+        if state == 264:                                  # discard remaining fractional digits
+            if c in numbers:   return self._go(264)
+            if c in delim_num or c == EOF: return self._accept(start, 263, FLO_LIT)
             return self._error(start, _cannot_follow(c, "a flo literal", "delim_num"))
         raise AssertionError(f"unknown TD4 state {state}")
 
