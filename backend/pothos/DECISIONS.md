@@ -1,8 +1,6 @@
 # Lexer decisions
 
-This table records how the current lexer resolves rules and delimiter
-differences. The lexer reports lexical errors and leaves syntax and semantic
-checks to later stages.
+This table is a historical inventory and contains outdated behavior descriptions. For the current approved diagram/CSV behavior, see root `DECISIONS.md` D-009 and `LEXER_AUDIT.md`; this table is retained as a migration checklist. The lexer reports lexical errors and leaves syntax and semantic checks to later stages.
 
 | # | rule | what the documentation says | what the lexer does | why |
 |---:|---|---|---|---|

@@ -4,14 +4,14 @@ lexer.py - the Pothos lexical analyzer (hand-written state machine).
 How to read this file alongside the transition diagrams:
 
   * `state` holds a TD state number. State 0 is the shared start state.
-      TD1 Reserved Words ............ states   1-136, 287-291 -> _td1_reserved_words
-      TD2 Reserved Symbols .......... states 137-195   -> _td2_reserved_symbols
-      TD3 Identifiers ............... states 196-235   -> _td3_identifiers
-      TD4 Integer Literals .......... states 236-271   -> _td4_integer_literals
-      TD5 Strings and Comments ...... states 272-286   -> _td5_strings_comments
+      TD1 Reserved Words ............ states   1-143   -> _td1_reserved_words
+      TD2 Reserved Symbols .......... states 144-199   -> _td2_reserved_symbols
+      TD3 Identifiers ............... states 200-240   -> _td3_identifiers
+      TD4 Integer and Float Literals  states 241-268   -> _td4_integer_literals
+      TD5 Strings and Comments ...... states 269-281   -> _td5_strings_comments
     A number used in two TDs is ONE state, so it has ONE branch here:
-    141 "-", 149 "/", 153 "/-" (TD2 branches, with their TD4/TD5 edges) and
-    192 '"', 194 "'" (numbered in TD2, edges drawn in TD5).
+    148 "-", 157 "/", 161 "/-" (TD2 branches, with their TD5 edges) and
+    269 '"', 272 "'" (opening quote states drawn in TD5).
 
   * One `if state == N:` branch per non-final state. Inside it, one line per
     outgoing edge, tested against the edge label (a character or a set from
@@ -23,7 +23,7 @@ How to read this file alongside the transition diagrams:
 
   * Retraction: a final state marked * reads one character past the token (the
     delimiter) to know the token ended. That character is given back
-    (retract 1), so it is read again as the start of the next token. State 154
+    (retract 1), so it is read again as the start of the next token. State 162
     is marked ** and gives back 2 characters.
 
   * No matching edge = lexical error. The error is recorded, the lexer
@@ -41,7 +41,7 @@ from .charsets import (
     delim_space, delim_quote, delim_id, delim_num, delim_bool, delim_block, delim_stmt,
     delim_openparen, delim_openbracket, delim_opencurly, delim_closeparen,
     delim_closebracket, delim_closecurly, delim_comma, delim_colon, delim_scolon,
-    delim_datatype, delim_io, delim_logic, delim_struc, delim_deleo, delim_const,
+    delim_datatype, delim_io, delim_logic, delim_logic_newline, delim_struc, delim_deleo, delim_const,
     delim_insid,
     delim_plus, delim_arithmetic, delim_oper, delim_equality,
     delim_equal, delim_augoper, delim_dqopen, delim_dqclose, delim_sqopen,
@@ -58,7 +58,7 @@ from .tokens import (
 # character that is not in its delimiter set and is not a letter, digit or _
 # (belial{  elsa(  reor;  lis[ ):
 #   False -> lexical error.
-#   True  -> restart at 196, so `belial{` lexes as
+#   True  -> restart at 200, so `belial{` lexes as
 #            id "belial" followed by "{" (the parser must reject it).
 COMPLETE_KEYWORD_FALLS_BACK_TO_ID = False
 
@@ -66,14 +66,13 @@ END = -1        # pseudo-state: the current token is finished (accepted or error
 
 # Recovery stops at whitespace, brackets, separators, and quotes so strings remain visible.
 RECOVERY_STOP = delim_space | {"(", ")", "{", "}", "[", "]", ";", ",", ":"} | delim_quote
-ID_DELIMITER = delim_id | {EOF}  # adj: eof ends an identifier
+ID_DELIMITER = delim_id  # EOF is not an identifier delimiter in the current QA table.
 REOR_DELIMITER = delim_struc - {NEWLINE, ";"} | delim_quote
 INSID_DELIMITER = delim_insid & delim_space
 
 # Error messages describe the violated lexical rule.
 ID_TOO_LONG = "identifier exceeds 20 characters"
 INT_TOO_LONG = "wharfa literal exceeds 8 significant digits"
-STR_RAW_NEWLINE = "unterminated strina literal: raw newline inside it, use \\n"
 STR_NO_CLOSE_DQ = 'unterminated strina literal: missing closing "'
 STR_NO_CLOSE_SQ = "unterminated strina literal: missing closing '"
 ML_UNTERMINATED = "unterminated multi-line comment: missing '--/'"
@@ -159,40 +158,38 @@ class Lexer:
         while state != END:
             c = self._peek()
             if c != EOF and c not in ascii and c != NEWLINE:
-                if state == 192:
-                    state = self._error_inside(192, _not_ascii(c, "source"), self.pos)
-                elif state == 194:
-                    state = self._error_inside(194, _not_ascii(c, "source"), self.pos)
-                elif state == 274:
-                    state = self._error_non_ascii_escape(c, 192)
-                elif state == 277:
-                    state = self._error_non_ascii_escape(c, 194)
-                elif state == 278:
-                    state = self._error_inside(280, _not_ascii(c, "source"), self.pos)
-                elif state == 280:
-                    state = self._error_inside(280, _not_ascii(c, "source"), self.pos)
-                elif state in (282, 283, 284):
-                    state = self._error_inside(282, _not_ascii(c, "source"), self.pos)
+                if state == 269:
+                    state = self._error_inside(269, _not_ascii(c, "source"), self.pos)
                 elif state == 272:
-                    state = self._accept(start, 273, STRINA_LIT)
+                    state = self._error_inside(272, _not_ascii(c, "source"), self.pos)
+                elif state == 301:
+                    state = self._error_non_ascii_escape(c, 269)
+                elif state == 302:
+                    state = self._error_non_ascii_escape(c, 272)
                 elif state == 275:
-                    state = self._accept(start, 276, STRINA_LIT)
-                elif state == 285:
-                    state = self._accept(start, 286, COMMENT_ML)
+                    state = self._error_inside(275, _not_ascii(c, "source"), self.pos)
+                elif state in (277, 278, 279):
+                    state = self._error_inside(277, _not_ascii(c, "source"), self.pos)
+                elif state == 270:
+                    state = self._accept(start, 271, STRINA_LIT)
+                elif state == 273:
+                    state = self._accept(start, 274, STRINA_LIT)
+                elif state == 280:
+                    state = self._accept(start, 281, COMMENT_ML)
                 else:
                     state = self._error_character(c)
                 continue
             if state == 0:
                 state = self._state_0(c, start)
-            elif state <= 136 or state in (287, 288, 289, 290, 291):
+            elif 1 <= state <= 143:
                 state = self._td1_reserved_words(state, c, start)
-            elif state in (192, 194):            # numbered in TD2, edges drawn in TD5
+            elif state in (269, 272, 301, 302):
                 state = self._td5_strings_comments(state, c, start)
-            elif state <= 195:
+            elif 144 <= state <= 199:
                 state = self._td2_reserved_symbols(state, c, start)
-            elif state <= 235:
+            elif 200 <= state <= 240:
                 state = self._td3_identifiers(state, c, start)
-            elif state <= 271:
+            elif 241 <= state <= 268 or state == 300:
                 state = self._td4_integer_literals(state, c, start)
             else:
                 state = self._td5_strings_comments(state, c, start)
@@ -218,22 +215,32 @@ class Lexer:
         """
         self.pos += 1               # read the delimiter
         self.pos -= retract         # give it back (and for **, one more)
-        lexeme = self.src[start:self.pos]
+        source_lexeme = self.src[start:self.pos]
+        lexeme = source_lexeme
         is_comment = token_type in (COMMENT_SL, COMMENT_ML)
         if not self._bad and not (is_comment and self.skip_comments):
             line, col = self._where(start)
             value = None
             if token_type == FLO_LIT:
-                # Preserve the source spelling while storing the specified
-                # four-place truncated numeric value for downstream phases.
-                whole, fraction = lexeme.split(".", 1)
-                value = float(f"{whole}.{fraction[:4]}")
+                # Round exactly to four places and normalize the token-table
+                # spelling. Fractional zeroes are trimmed, with at least .0.
+                whole, fraction = source_lexeme.split(".", 1)
+                whole = whole.lstrip("0") or "0"
+                fraction4 = fraction[:4].ljust(4, "0")
+                scaled = int(whole) * 10_000 + int(fraction4)
+                if len(fraction) > 4 and fraction[4] >= "5":
+                    scaled += 1
+                whole_value, fractional_value = divmod(scaled, 10_000)
+                fractional_text = f"{fractional_value:04d}".rstrip("0") or "0"
+                lexeme = f"{whole_value}.{fractional_text}"
+                value = float(lexeme)
             elif token_type == WHARFA_LIT:
+                lexeme = source_lexeme.lstrip("0") or "0"
                 value = int(lexeme)
             self.tokens.append(Token(token_type, lexeme, line, col, value))
         if self.trace:
             self._path.append(f"{final_state}{'*' * retract}")
-            self._save_path(start, lexeme)
+            self._save_path(start, source_lexeme)
         return END
 
     def _error(self, start: int, message: str) -> int:
@@ -247,6 +254,21 @@ class Lexer:
             self.pos += 1
         while self.pos < self.n and self.src[self.pos] not in RECOVERY_STOP:
             self.pos += 1
+        text = self.src[start:self.pos]
+        line, col = self._where(start)
+        self.errors.append(LexicalError(message, line, col, text))
+        if self.trace:
+            self._path.append("error")
+            self._save_path(start, text)
+        return END
+
+    def _overflow_error(self, start: int, message: str) -> int:
+        """Report the overlength prefix and leave its first excess character unread.
+
+        The next scan starts at that excess character. This mirrors the TD
+        overflow edge: the prefix is rejected, while the suffix can still form
+        a separate token.
+        """
         text = self.src[start:self.pos]
         line, col = self._where(start)
         self.errors.append(LexicalError(message, line, col, text))
@@ -297,12 +319,12 @@ class Lexer:
         self.pos = line_end
         return END
 
-    def _restart_at_196(self, start: int) -> int:
-        """No matching reserved-word transition -> restart at identifier state 196 from the first letter."""
-        self.pos = start + 1                 # the first letter is the edge 0 --letter--> 196
+    def _restart_at_200(self, start: int) -> int:
+        """No matching reserved-word transition -> restart at identifier state 200 from the first letter."""
+        self.pos = start + 1                 # the first letter is the edge 0 --letter--> 200
         if self.trace:
-            self._path.append("restart->196")
-        return 196
+            self._path.append("restart->200")
+        return 200
 
     def _keyword_not_delimited(self, start: int, word: str, set_name: str, c: str) -> int:
         """A complete reserved word (e.g. "belial") is NOT followed by its delimiter.
@@ -313,7 +335,7 @@ class Lexer:
           COMPLETE_KEYWORD_FALLS_BACK_TO_ID is True.
         """
         if c in alphanum_us or COMPLETE_KEYWORD_FALLS_BACK_TO_ID:
-            return self._restart_at_196(start)
+            return self._restart_at_200(start)
         return self._error(start, _cannot_follow(c, f"reserved word '{word}'", set_name))
 
     def _where(self, offset: int) -> Tuple[int, int]:
@@ -335,44 +357,44 @@ class Lexer:
         if c == "d": return self._go(25)                  # d
         if c == "e": return self._go(31)                  # e
         if c == "f": return self._go(36)                  # f
-        if c == "g": return self._go(42)                  # g
-        if c == "i": return self._go(51)                  # i
-        if c == "I": return self._go(65)                  # I
-        if c == "l": return self._go(72)                  # l
-        if c == "n": return self._go(80)                  # n
-        if c == "o": return self._go(85)                  # o
-        if c == "p": return self._go(91)                  # p
-        if c == "r": return self._go(108)                 # r
-        if c == "s": return self._go(113)                 # s
-        if c == "t": return self._go(120)                 # t
-        if c == "T": return self._go(125)                 # T
-        if c == "w": return self._go(130)                 # w
+        if c == "g": return self._go(45)                  # g
+        if c == "i": return self._go(54)                  # i
+        if c == "I": return self._go(72)                  # I
+        if c == "l": return self._go(79)                  # l
+        if c == "n": return self._go(87)                  # n
+        if c == "o": return self._go(92)                  # o
+        if c == "p": return self._go(98)                  # p
+        if c == "r": return self._go(115)                 # r
+        if c == "s": return self._go(120)                 # s
+        if c == "t": return self._go(127)                 # t
+        if c == "T": return self._go(132)                 # T
+        if c == "w": return self._go(137)                 # w
         # TD3: any other letter starts an identifier
-        if c in letter: return self._go(196)
+        if c in letter: return self._go(200)
         # TD4: integer literals
-        if c == "0": return self._go(236)
-        if c in digit: return self._go(238)
+        if c == "0": return self._go(241)
+        if c in digit: return self._go(243)
         # TD2: reserved symbols (" and ' continue in TD5)
-        if c == "+": return self._go(137)
-        if c == "-": return self._go(141)                 # also TD4 (negative) and TD5 (--)
-        if c == "*": return self._go(145)
-        if c == "/": return self._go(149)                 # also TD5 (/--)
-        if c == "%": return self._go(155)
-        if c == "<": return self._go(159)
-        if c == ">": return self._go(163)
-        if c == "=": return self._go(167)
-        if c == "!": return self._go(171)
-        if c == "(": return self._go(174)
-        if c == ")": return self._go(176)
-        if c == "[": return self._go(178)
-        if c == "]": return self._go(180)
-        if c == "{": return self._go(182)
-        if c == "}": return self._go(184)
-        if c == ",": return self._go(186)
-        if c == ":": return self._go(188)
-        if c == ";": return self._go(190)
-        if c == '"': return self._go(192)
-        if c == "'": return self._go(194)
+        if c == "+": return self._go(144)
+        if c == "-": return self._go(148)                 # also TD4 (negative) and TD5 (--)
+        if c == "*": return self._go(153)
+        if c == "/": return self._go(157)                 # also TD5 (/--)
+        if c == "%": return self._go(163)
+        if c == "<": return self._go(167)
+        if c == ">": return self._go(171)
+        if c == "=": return self._go(175)
+        if c == "!": return self._go(179)
+        if c == "(": return self._go(182)
+        if c == ")": return self._go(184)
+        if c == "[": return self._go(186)
+        if c == "]": return self._go(188)
+        if c == "{": return self._go(190)
+        if c == "}": return self._go(192)
+        if c == ",": return self._go(194)
+        if c == ":": return self._go(196)
+        if c == ";": return self._go(198)
+        if c == '"': return self._go(269)
+        if c == "'": return self._go(272)
         # no edge from state 0
         if c == "_":
             return self._error(start, UNDERSCORE_START)
@@ -384,703 +406,701 @@ class Lexer:
         # Trua (125-129) and Inaccu (65-71) produce the token type trua_lit.
         if state == 1:                                    # read "a"
             if c == "n": return self._go(2)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 2:                                    # read "an" (complete)
             if c in delim_logic: return self._accept(start, 3, "an")  # 2 -> 3*
             return self._keyword_not_delimited(start, "an", "delim_logic", c)
         if state == 4:                                    # read "b"
             if c == "e": return self._go(5)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 5:                                    # read "be"
             if c == "l": return self._go(6)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 6:                                    # read "bel"
             if c == "i": return self._go(7)
             if c == "s": return self._go(11)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 7:                                    # read "beli"
             if c == "a": return self._go(8)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 8:                                    # read "belia"
             if c == "l": return self._go(9)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 9:                                    # read "belial" (complete)
             if c in delim_io: return self._accept(start, 10, "belial")  # 9 -> 10*
             return self._keyword_not_delimited(start, "belial", "delim_io", c)  # keyword delimiter handling
         if state == 11:                                   # read "bels"
             if c == "a": return self._go(12)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 12:                                   # read "belsa" (complete)
             if c in delim_logic: return self._accept(start, 13, "belsa")  # 12 -> 13*
-            return self._keyword_not_delimited(start, "belsa", "delim_logic", c)  # adj: belsa uses delim_logic, diagram shows delim_block
+            return self._keyword_not_delimited(start, "belsa", "delim_logic", c)
         if state == 14:                                   # read "c"
             if c == "o": return self._go(15)
             if c == "y": return self._go(20)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 15:                                   # read "co"
             if c == "n": return self._go(16)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 16:                                   # read "con"
             if c == "s": return self._go(17)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 17:                                   # read "cons"
             if c == "t": return self._go(18)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 18:                                   # read "const" (complete)
             if c in delim_const: return self._accept(start, 19, "const")  # 18 -> 19*
             return self._keyword_not_delimited(start, "const", "delim_const", c)
         if state == 20:                                   # read "cy"
             if c == "c": return self._go(21)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 21:                                   # read "cyc"
             if c == "l": return self._go(22)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 22:                                   # read "cycl"
             if c == "a": return self._go(23)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 23:                                   # read "cycla" (complete)
             if c in delim_io: return self._accept(start, 24, "cycla")  # 23 -> 24*
             return self._keyword_not_delimited(start, "cycla", "delim_io", c)  # keyword delimiter handling
         if state == 25:                                   # read "d"
             if c == "e": return self._go(26)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 26:                                   # read "de"
             if c == "l": return self._go(27)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 27:                                   # read "del"
             if c == "e": return self._go(28)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 28:                                   # read "dele"
             if c == "o": return self._go(29)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 29:                                   # read "deleo" (complete)
             if c in delim_deleo: return self._accept(start, 30, "deleo")  # 29 -> 30*
             return self._keyword_not_delimited(start, "deleo", "delim_deleo", c)
         if state == 31:                                   # read "e"
             if c == "l": return self._go(32)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 32:                                   # read "el"
             if c == "s": return self._go(33)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 33:                                   # read "els"
             if c == "a": return self._go(34)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 34:                                   # read "elsa" (complete)
             if c in delim_block: return self._accept(start, 35, "elsa")  # 34 -> 35*
             return self._keyword_not_delimited(start, "elsa", "delim_block", c)  # keyword delimiter handling
         if state == 36:                                   # read "f"
-            if c == "l": return self._go(287)
+            if c == "l": return self._go(42)
             if c == "o": return self._go(37)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 37:                                   # read "fo"
             if c == "r": return self._go(38)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 38:                                   # read "for"
             if c == "m": return self._go(39)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 39:                                   # read "form"
             if c == "o": return self._go(40)
-            return self._restart_at_196(start)            # no reserved-word match
+            return self._restart_at_200(start)            # no reserved-word match
         if state == 40:                                   # read "formo" (complete)
             if c in delim_io: return self._accept(start, 41, "formo")  # 40 -> 41*
             return self._keyword_not_delimited(start, "formo", "delim_io", c)
-        if state == 287:                                   # read "fl"
-            if c == "o": return self._go(288)
-            return self._restart_at_196(start)
-        if state == 288:                                   # read "flo" (complete)
-            if c in delim_datatype: return self._accept(start, 292, "flo")
+        if state == 42:                                   # read "fl"
+            if c == "o": return self._go(43)
+            return self._restart_at_200(start)
+        if state == 43:                                   # read "flo" (complete)
+            if c in delim_datatype: return self._accept(start, 44, "flo")
             return self._keyword_not_delimited(start, "flo", "delim_datatype", c)
-        if state == 42:                                   # read "g"
-            if c == "l": return self._go(43)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 43:                                   # read "gl"
-            if c == "o": return self._go(44)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 44:                                   # read "glo"
-            if c == "s": return self._go(45)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 45:                                   # read "glos"
-            if c == "s": return self._go(46)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 46:                                   # read "gloss"
-            if c == "a": return self._go(47)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 47:                                   # read "glossa"
-            if c == "r": return self._go(48)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 48:                                   # read "glossar"
-            if c == "e": return self._go(49)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 49:                                   # read "glossare" (complete)
-            if c in delim_datatype: return self._accept(start, 50, "glossare")  # 49 -> 50*
+        if state == 45:                                   # read "g"
+            if c == "l": return self._go(46)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 46:                                   # read "gl"
+            if c == "o": return self._go(47)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 47:                                   # read "glo"
+            if c == "s": return self._go(48)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 48:                                   # read "glos"
+            if c == "s": return self._go(49)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 49:                                   # read "gloss"
+            if c == "a": return self._go(50)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 50:                                   # read "glossa"
+            if c == "r": return self._go(51)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 51:                                   # read "glossar"
+            if c == "e": return self._go(52)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 52:                                   # read "glossare" (complete)
+            if c in delim_datatype: return self._accept(start, 53, "glossare")  # 52 -> 53*
             return self._keyword_not_delimited(start, "glossare", "delim_datatype", c)
-        if state == 51:                                   # read "i"
-            if c == "n": return self._go(52)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 52:                                   # read "in"
-            if c == "n": return self._go(53)
-            if c == "p": return self._go(57)
-            if c == "s": return self._go(61)
-            if c == "f": return self._go(289)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 289:                                   # read "inf"
-            if c == "l": return self._go(290)
-            return self._restart_at_196(start)
-        if state == 290:                                   # read "infl"
-            if c == "o": return self._go(291)
-            return self._restart_at_196(start)
-        if state == 291:                                   # read "inflo" (complete)
-            if c in delim_io: return self._accept(start, 293, "inflo")
+        if state == 54:                                   # read "i"
+            if c == "n": return self._go(55)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 55:                                   # read "in"
+            if c == "n": return self._go(60)
+            if c == "p": return self._go(64)
+            if c == "s": return self._go(68)
+            if c == "f": return self._go(56)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 56:                                   # read "inf"
+            if c == "l": return self._go(57)
+            return self._restart_at_200(start)
+        if state == 57:                                   # read "infl"
+            if c == "o": return self._go(58)
+            return self._restart_at_200(start)
+        if state == 58:                                   # read "inflo" (complete)
+            if c in delim_io: return self._accept(start, 59, "inflo")
             return self._keyword_not_delimited(start, "inflo", "delim_io", c)
-        if state == 53:                                   # read "inn"
-            if c == "u": return self._go(54)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 54:                                   # read "innu"
-            if c == "m": return self._go(55)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 55:                                   # read "innum" (complete)
-            if c in delim_io: return self._accept(start, 56, "innum")  # 55 -> 56*
+        if state == 60:                                   # read "inn"
+            if c == "u": return self._go(61)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 61:                                   # read "innu"
+            if c == "m": return self._go(62)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 62:                                   # read "innum" (complete)
+            if c in delim_io: return self._accept(start, 63, "innum")  # 62 -> 63*
             return self._keyword_not_delimited(start, "innum", "delim_io", c)  # keyword delimiter handling
-        if state == 57:                                   # read "inp"
-            if c == "u": return self._go(58)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 58:                                   # read "inpu"
-            if c == "b": return self._go(59)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 59:                                   # read "inpub" (complete)
-            if c in delim_io: return self._accept(start, 60, "inpub")  # 59 -> 60*
+        if state == 64:                                   # read "inp"
+            if c == "u": return self._go(65)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 65:                                   # read "inpu"
+            if c == "b": return self._go(66)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 66:                                   # read "inpub" (complete)
+            if c in delim_io: return self._accept(start, 67, "inpub")  # 66 -> 67*
             return self._keyword_not_delimited(start, "inpub", "delim_io", c)  # keyword delimiter handling
-        if state == 61:                                   # read "ins"
-            if c == "i": return self._go(62)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 62:                                   # read "insi"
-            if c == "d": return self._go(63)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 63:                                   # read "insid" (complete)
-            if c in INSID_DELIMITER: return self._accept(start, 64, "insid")  # 63 -> 64*
+        if state == 68:                                   # read "ins"
+            if c == "i": return self._go(69)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 69:                                   # read "insi"
+            if c == "d": return self._go(70)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 70:                                   # read "insid" (complete)
+            if c in INSID_DELIMITER: return self._accept(start, 71, "insid")  # 70 -> 71*
             return self._keyword_not_delimited(start, "insid", "INSID_DELIMITER", c)
-        if state == 65:                                   # read "I"
-            if c == "n": return self._go(66)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 66:                                   # read "In"
-            if c == "a": return self._go(67)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 67:                                   # read "Ina"
-            if c == "c": return self._go(68)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 68:                                   # read "Inac"
-            if c == "c": return self._go(69)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 69:                                   # read "Inacc"
-            if c == "u": return self._go(70)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 70:                                   # read "Inaccu" (complete)
-            if c in delim_bool: return self._accept(start, 71, TRUA_LIT)  # 70 -> 71*
+        if state == 72:                                   # read "I"
+            if c == "n": return self._go(73)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 73:                                   # read "In"
+            if c == "a": return self._go(74)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 74:                                   # read "Ina"
+            if c == "c": return self._go(75)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 75:                                   # read "Inac"
+            if c == "c": return self._go(76)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 76:                                   # read "Inacc"
+            if c == "u": return self._go(77)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 77:                                   # read "Inaccu" (complete)
+            if c in delim_bool: return self._accept(start, 78, TRUA_LIT)  # 77 -> 78*
             return self._keyword_not_delimited(start, "Inaccu", "delim_bool", c)  # keyword delimiter handling
-        if state == 72:                                   # read "l"
-            if c == "i": return self._go(73)
-            if c == "o": return self._go(76)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 73:                                   # read "li"
-            if c == "s": return self._go(74)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 74:                                   # read "lis" (complete)
-            if c in delim_space: return self._accept(start, 75, "lis")  # 74 -> 75*
-            return self._keyword_not_delimited(start, "lis", "delim_space", c)  # keyword delimiter handling
-        if state == 76:                                   # read "lo"
-            if c == "o": return self._go(77)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 77:                                   # read "loo"
-            if c == "d": return self._go(78)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 78:                                   # read "lood" (complete)
-            if c in delim_io: return self._accept(start, 79, "lood")  # 78 -> 79*
+        if state == 79:                                   # read "l"
+            if c == "i": return self._go(80)
+            if c == "o": return self._go(83)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 80:                                   # read "li"
+            if c == "s": return self._go(81)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 81:                                   # read "lis" (complete)
+            if c in delim_datatype: return self._accept(start, 82, "lis")  # 81 -> 82*
+            return self._keyword_not_delimited(start, "lis", "delim_datatype", c)  # keyword delimiter handling
+        if state == 83:                                   # read "lo"
+            if c == "o": return self._go(84)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 84:                                   # read "loo"
+            if c == "d": return self._go(85)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 85:                                   # read "lood" (complete)
+            if c in delim_io: return self._accept(start, 86, "lood")  # 85 -> 86*
             return self._keyword_not_delimited(start, "lood", "delim_io", c)  # keyword delimiter handling
-        if state == 80:                                   # read "n"
-            if c == "e": return self._go(81)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 81:                                   # read "ne"
-            if c == "v": return self._go(82)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 82:                                   # read "nev"
-            if c == "e": return self._go(83)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 83:                                   # read "neve" (complete)
-            if c in delim_logic: return self._accept(start, 84, "neve")  # 83 -> 84*
+        if state == 87:                                   # read "n"
+            if c == "e": return self._go(88)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 88:                                   # read "ne"
+            if c == "v": return self._go(89)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 89:                                   # read "nev"
+            if c == "e": return self._go(90)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 90:                                   # read "neve" (complete)
+            if c in delim_logic: return self._accept(start, 91, "neve")
             return self._keyword_not_delimited(start, "neve", "delim_logic", c)
-        if state == 85:                                   # read "o"
-            if c == "t": return self._go(86)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 86:                                   # read "ot"
-            if c == "h": return self._go(87)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 87:                                   # read "oth"
-            if c == "a": return self._go(88)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 88:                                   # read "otha"
-            if c == "n": return self._go(89)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 89:                                   # read "othan" (complete)
-            if c in delim_logic: return self._accept(start, 90, "othan")  # 89 -> 90*
+        if state == 92:                                   # read "o"
+            if c == "t": return self._go(93)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 93:                                   # read "ot"
+            if c == "h": return self._go(94)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 94:                                   # read "oth"
+            if c == "a": return self._go(95)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 95:                                   # read "otha"
+            if c == "n": return self._go(96)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 96:                                   # read "othan" (complete)
+            if c in delim_logic: return self._accept(start, 97, "othan")  # 96 -> 97*
             return self._keyword_not_delimited(start, "othan", "delim_logic", c)
-        if state == 91:                                   # read "p"
-            if c == "a": return self._go(92)
-            if c == "e": return self._go(98)
-            if c == "r": return self._go(104)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 92:                                   # read "pa"
-            if c == "s": return self._go(93)
-            if c == "u": return self._go(95)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 93:                                   # read "pas" (complete)
-            if c in delim_stmt: return self._accept(start, 94, "pas")  # 93 -> 94*
-            return self._keyword_not_delimited(start, "pas", "delim_stmt", c)  # keyword delimiter handling
-        if state == 95:                                   # read "pau"
-            if c == "s": return self._go(96)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 96:                                   # read "paus" (complete)
-            if c in delim_stmt: return self._accept(start, 97, "paus")  # 96 -> 97*
-            return self._keyword_not_delimited(start, "paus", "delim_stmt", c)  # keyword delimiter handling
-        if state == 98:                                   # read "pe"
-            if c == "r": return self._go(99)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 99:                                   # read "per"
-            if c == "s": return self._go(100)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 100:                                  # read "pers"
-            if c == "i": return self._go(101)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 101:                                  # read "persi"
-            if c == "s": return self._go(102)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 102:                                  # read "persis" (complete)
-            if c in delim_stmt: return self._accept(start, 103, "persis")  # 102 -> 103*
-            return self._keyword_not_delimited(start, "persis", "delim_stmt", c)  # keyword delimiter handling
-        if state == 104:                                  # read "pr"
-            if c == "i": return self._go(105)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 105:                                  # read "pri"
-            if c == "n": return self._go(106)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 106:                                  # read "prin" (complete)
-            if c in delim_io: return self._accept(start, 107, "prin")  # 106 -> 107*
-            return self._keyword_not_delimited(start, "prin", "delim_io", c)  # keyword delimiter handling
-        if state == 108:                                  # read "r"
-            if c == "e": return self._go(109)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 109:                                  # read "re"
-            if c == "o": return self._go(110)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 110:                                  # read "reo"
+        if state == 98:                                   # read "p"
+            if c == "a": return self._go(99)
+            if c == "e": return self._go(105)
             if c == "r": return self._go(111)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 111:                                  # read "reor" (complete)
-            if c in REOR_DELIMITER: return self._accept(start, 112, "reor")  # 111 -> 112*
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 99:                                   # read "pa"
+            if c == "s": return self._go(100)
+            if c == "u": return self._go(102)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 100:                                   # read "pas" (complete)
+            if c in delim_stmt: return self._accept(start, 101, "pas")  # 100 -> 101*
+            return self._keyword_not_delimited(start, "pas", "delim_stmt", c)  # keyword delimiter handling
+        if state == 102:                                   # read "pau"
+            if c == "s": return self._go(103)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 103:                                   # read "paus" (complete)
+            if c in delim_stmt: return self._accept(start, 104, "paus")  # 103 -> 104*
+            return self._keyword_not_delimited(start, "paus", "delim_stmt", c)  # keyword delimiter handling
+        if state == 105:                                   # read "pe"
+            if c == "r": return self._go(106)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 106:                                   # read "per"
+            if c == "s": return self._go(107)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 107:                                  # read "pers"
+            if c == "i": return self._go(108)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 108:                                  # read "persi"
+            if c == "s": return self._go(109)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 109:                                  # read "persis" (complete)
+            if c in delim_stmt: return self._accept(start, 110, "persis")  # 109 -> 110*
+            return self._keyword_not_delimited(start, "persis", "delim_stmt", c)  # keyword delimiter handling
+        if state == 111:                                  # read "pr"
+            if c == "i": return self._go(112)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 112:                                  # read "pri"
+            if c == "n": return self._go(113)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 113:                                  # read "prin" (complete)
+            if c in delim_io: return self._accept(start, 114, "prin")  # 113 -> 114*
+            return self._keyword_not_delimited(start, "prin", "delim_io", c)  # keyword delimiter handling
+        if state == 115:                                  # read "r"
+            if c == "e": return self._go(116)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 116:                                  # read "re"
+            if c == "o": return self._go(117)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 117:                                  # read "reo"
+            if c == "r": return self._go(118)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 118:                                  # read "reor" (complete)
+            if c in REOR_DELIMITER: return self._accept(start, 119, "reor")  # 118 -> 119*
             return self._keyword_not_delimited(start, "reor", "REOR_DELIMITER", c)
-        if state == 113:                                  # read "s"
-            if c == "t": return self._go(114)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 114:                                  # read "st"
-            if c == "r": return self._go(115)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 115:                                  # read "str"
-            if c == "i": return self._go(116)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 116:                                  # read "stri"
-            if c == "n": return self._go(117)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 117:                                  # read "strin"
-            if c == "a": return self._go(118)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 118:                                  # read "strina" (complete)
-            if c in delim_space: return self._accept(start, 119, "strina")  # 118 -> 119*
-            return self._keyword_not_delimited(start, "strina", "delim_space", c)  # keyword delimiter handling
-        if state == 120:                                  # read "t"
-            if c == "r": return self._go(121)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 121:                                  # read "tr"
-            if c == "u": return self._go(122)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 122:                                  # read "tru"
-            if c == "a": return self._go(123)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 123:                                  # read "trua" (complete)
-            if c in delim_space: return self._accept(start, 124, "trua")  # 123 -> 124*
-            return self._keyword_not_delimited(start, "trua", "delim_space", c)  # keyword delimiter handling
-        if state == 125:                                  # read "T"
-            if c == "r": return self._go(126)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 126:                                  # read "Tr"
-            if c == "u": return self._go(127)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 127:                                  # read "Tru"
-            if c == "a": return self._go(128)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 128:                                  # read "Trua" (complete)
-            if c in delim_bool: return self._accept(start, 129, TRUA_LIT)  # 128 -> 129*
-            return self._keyword_not_delimited(start, "Trua", "delim_bool", c)  # keyword delimiter handling
-        if state == 130:                                  # read "w"
-            if c == "h": return self._go(131)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 131:                                  # read "wh"
-            if c == "a": return self._go(132)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 132:                                  # read "wha"
+        if state == 120:                                  # read "s"
+            if c == "t": return self._go(121)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 121:                                  # read "st"
+            if c == "r": return self._go(122)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 122:                                  # read "str"
+            if c == "i": return self._go(123)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 123:                                  # read "stri"
+            if c == "n": return self._go(124)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 124:                                  # read "strin"
+            if c == "a": return self._go(125)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 125:                                  # read "strina" (complete)
+            if c in delim_datatype: return self._accept(start, 126, "strina")  # 125 -> 126*
+            return self._keyword_not_delimited(start, "strina", "delim_datatype", c)  # keyword delimiter handling
+        if state == 127:                                  # read "t"
+            if c == "r": return self._go(128)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 128:                                  # read "tr"
+            if c == "u": return self._go(129)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 129:                                  # read "tru"
+            if c == "a": return self._go(130)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 130:                                  # read "trua" (complete)
+            if c in delim_datatype: return self._accept(start, 131, "trua")  # 130 -> 131*
+            return self._keyword_not_delimited(start, "trua", "delim_datatype", c)  # keyword delimiter handling
+        if state == 132:                                  # read "T"
             if c == "r": return self._go(133)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 133:                                  # read "whar"
-            if c == "f": return self._go(134)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 134:                                  # read "wharf"
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 133:                                  # read "Tr"
+            if c == "u": return self._go(134)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 134:                                  # read "Tru"
             if c == "a": return self._go(135)
-            return self._restart_at_196(start)            # no reserved-word match
-        if state == 135:                                  # read "wharfa" (complete)
-            if c in delim_space: return self._accept(start, 136, "wharfa")  # 135 -> 136*
-            return self._keyword_not_delimited(start, "wharfa", "delim_space", c)  # keyword delimiter handling
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 135:                                  # read "Trua" (complete)
+            if c in delim_bool: return self._accept(start, 136, TRUA_LIT)  # 135 -> 136*
+            return self._keyword_not_delimited(start, "Trua", "delim_bool", c)  # keyword delimiter handling
+        if state == 137:                                  # read "w"
+            if c == "h": return self._go(138)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 138:                                  # read "wh"
+            if c == "a": return self._go(139)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 139:                                  # read "wha"
+            if c == "r": return self._go(140)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 140:                                  # read "whar"
+            if c == "f": return self._go(141)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 141:                                  # read "wharf"
+            if c == "a": return self._go(142)
+            return self._restart_at_200(start)            # no reserved-word match
+        if state == 142:                                  # read "wharfa" (complete)
+            if c in delim_datatype: return self._accept(start, 143, "wharfa")  # 142 -> 143*
+            return self._keyword_not_delimited(start, "wharfa", "delim_datatype", c)  # keyword delimiter handling
         raise AssertionError(f"unknown TD1 state {state}")
 
     # ============================================ TD2  Reserved Symbols 137-195
     def _td2_reserved_symbols(self, state: int, c: str, start: int) -> int:
         # Every final state is * except 154 (**).
-        if state == 137:                                  # read "+"
-            if c == "=":          return self._go(139)
-            if c in delim_plus:   return self._accept(start, 138, "+")         # 137 -> 138*
+        if state == 144:                                  # read "+"
+            if c == "=":          return self._go(146)
+            if c in delim_plus:   return self._accept(start, 145, "+")         # 144 -> 145*
             return self._error(start, _cannot_follow(c, "'+'", "delim_plus"))
-        if state == 139:                                  # read "+="
-            if c in delim_augoper: return self._accept(start, 140, "+=")        # 139 -> 140*
+        if state == 146:                                  # read "+="
+            if c in delim_augoper: return self._accept(start, 147, "+=")        # 146 -> 147*
             return self._error(start, _cannot_follow(c, "'+='", "delim_augoper"))
 
-        if state == 141:                                  # read "-"  (shared: TD2, TD5)
-            if c == "=":                    return self._go(143)               # TD2: -=
-            if c == "-":                    return self._go(278)               # TD5: -- comment
-            if c in delim_oper:            return self._accept(start, 142, "-")   # 141 -> 142*
+        if state == 148:                                  # read "-"  (shared: TD2, TD5)
+            if c == "=":                    return self._go(150)               # TD2: -=
+            if c == "-":                    return self._go(275)               # TD5: -- comment
+            if c in delim_oper:            return self._accept(start, 149, "-")   # 148 -> 149*
             return self._error(start, _cannot_follow(c, "'-'", "delim_oper"))
-        if state == 143:                                  # read "-="
-            if c in delim_augoper: return self._accept(start, 144, "-=")        # 143 -> 144*
+        if state == 150:                                  # read "-="
+            if c in delim_augoper: return self._accept(start, 151, "-=")        # 150 -> 151*
             return self._error(start, _cannot_follow(c, "'-='", "delim_augoper"))
 
-        if state == 145:                                  # read "*"
-            if c == "=":          return self._go(147)
-            if c in delim_arithmetic: return self._accept(start, 146, "*")         # 145 -> 146*
+        if state == 153:                                  # read "*"
+            if c == "=":          return self._go(155)
+            if c in delim_arithmetic: return self._accept(start, 154, "*")         # 153 -> 154*
             return self._error(start, _cannot_follow(c, "'*'", "delim_arithmetic"))
-        if state == 147:                                  # read "*="
-            if c in delim_augoper: return self._accept(start, 148, "*=")        # 147 -> 148*
+        if state == 155:                                  # read "*="
+            if c in delim_augoper: return self._accept(start, 156, "*=")        # 155 -> 156*
             return self._error(start, _cannot_follow(c, "'*='", "delim_augoper"))
 
-        if state == 149:                                  # read "/"  (shared: TD2, TD5)
-            if c == "=":          return self._go(151)
-            if c == "-":          return self._go(153)
-            if c in delim_arithmetic: return self._accept(start, 150, "/")         # 149 -> 150*
+        if state == 157:                                  # read "/"  (shared: TD2, TD5)
+            if c == "=":          return self._go(159)
+            if c == "-":          return self._go(161)
+            if c in delim_arithmetic: return self._accept(start, 158, "/")         # 157 -> 158*
             return self._error(start, _cannot_follow(c, "'/'", "delim_oper"))
-        if state == 151:                                  # read "/="
-            if c in delim_augoper: return self._accept(start, 152, "/=")        # 151 -> 152*
+        if state == 159:                                  # read "/="
+            if c in delim_augoper: return self._accept(start, 160, "/=")        # 159 -> 160*
             return self._error(start, _cannot_follow(c, "'/='", "delim_augoper"))
-        if state == 153:                                  # read "/-"  (shared: TD2, TD5)
-            if c == "-":          return self._go(282)                         # TD5: /-- comment
+        if state == 161:                                  # read "/-"  (shared: TD2, TD5)
+            if c == "-":          return self._go(277)                         # TD5: /-- comment
             # 154**: "/" then "-" then a delim_oper character (10/-2, a/-b).
             # Give back 2 characters ("-" and c), emit "/"; the "-" is read again.
-            if c in delim_oper:  return self._accept(start, 154, "/", retract=2)
+            if c in delim_oper:  return self._accept(start, 162, "/", retract=2)
             return self._error(start, _cannot_follow(c, "'-'", "delim_oper"))
 
-        if state == 155:                                  # read "%"
-            if c == "=":          return self._go(157)
-            if c in delim_arithmetic: return self._accept(start, 156, "%")         # 155 -> 156*
+        if state == 163:                                  # read "%"
+            if c == "=":          return self._go(165)
+            if c in delim_arithmetic: return self._accept(start, 164, "%")         # 163 -> 164*
             return self._error(start, _cannot_follow(c, "'%'", "delim_arithmetic"))
-        if state == 157:                                  # read "%="
-            if c in delim_augoper: return self._accept(start, 158, "%=")        # 157 -> 158*
+        if state == 165:                                  # read "%="
+            if c in delim_augoper: return self._accept(start, 166, "%=")        # 165 -> 166*
             return self._error(start, _cannot_follow(c, "'%='", "delim_augoper"))
 
-        if state == 159:                                  # read "<"
-            if c == "=":          return self._go(161)
-            if c in delim_equality:  return self._accept(start, 160, "<")         # 159 -> 160*
+        if state == 167:                                  # read "<"
+            if c == "=":          return self._go(169)
+            if c in delim_equality:  return self._accept(start, 168, "<")         # 167 -> 168*
             return self._error(start, _cannot_follow(c, "'<'", "delim_equality"))
-        if state == 161:                                  # read "<="
-            if c in delim_equality:  return self._accept(start, 162, "<=")        # 161 -> 162*
+        if state == 169:                                  # read "<="
+            if c in delim_equality:  return self._accept(start, 170, "<=")        # 169 -> 170*
             return self._error(start, _cannot_follow(c, "'<='", "delim_equality"))
 
-        if state == 163:                                  # read ">"
-            if c == "=":          return self._go(165)
-            if c in delim_equality:  return self._accept(start, 164, ">")         # 163 -> 164*
+        if state == 171:                                  # read ">"
+            if c == "=":          return self._go(173)
+            if c in delim_equality:  return self._accept(start, 172, ">")         # 171 -> 172*
             return self._error(start, _cannot_follow(c, "'>'", "delim_equality"))
-        if state == 165:                                  # read ">="
-            if c in delim_equality:  return self._accept(start, 166, ">=")        # 165 -> 166*
+        if state == 173:                                  # read ">="
+            if c in delim_equality:  return self._accept(start, 174, ">=")        # 173 -> 174*
             return self._error(start, _cannot_follow(c, "'>='", "delim_equality"))
 
-        if state == 167:                                  # read "="
-            if c == "=":          return self._go(169)
-            if c in delim_equal:  return self._accept(start, 168, "=")         # 167 -> 168*
+        if state == 175:                                  # read "="
+            if c == "=":          return self._go(177)
+            if c in delim_equal:  return self._accept(start, 176, "=")         # 175 -> 176*
             return self._error(start, _cannot_follow(c, "'='", "delim_equal"))
-        if state == 169:                                  # read "=="
-            if c in delim_equality:  return self._accept(start, 170, "==")        # 169 -> 170*
+        if state == 177:                                  # read "=="
+            if c in delim_equality:  return self._accept(start, 178, "==")        # 177 -> 178*
             return self._error(start, _cannot_follow(c, "'=='", "delim_equality"))
 
-        if state == 171:                                  # read "!"
-            if c == "=":          return self._go(172)
+        if state == 179:                                  # read "!"
+            if c == "=":          return self._go(180)
             return self._error(start, f"'!' must be followed by '=' (found {_show(c)})")
-        if state == 172:                                  # read "!="
-            if c in delim_equality:  return self._accept(start, 173, "!=")        # 172 -> 173*
+        if state == 180:                                  # read "!="
+            if c in delim_equality:  return self._accept(start, 181, "!=")        # 180 -> 181*
             return self._error(start, _cannot_follow(c, "'!='", "delim_equality"))
 
-        if state == 174:                                  # read "("
-            if c in delim_openparen: return self._accept(start, 175, "(")     # 174 -> 175*
+        if state == 182:                                  # read "("
+            if c in delim_openparen: return self._accept(start, 183, "(")     # 182 -> 183*
             return self._error(start, _cannot_follow(c, "'('", "delim_openparen"))
-        if state == 176:                                  # read ")"
-            if c in delim_closeparen: return self._accept(start, 177, ")")     # 176 -> 177*
+        if state == 184:                                  # read ")"
+            if c in delim_closeparen: return self._accept(start, 185, ")")     # 184 -> 185*
             return self._error(start, _cannot_follow(c, "')'", "delim_closeparen"))
-        if state == 178:                                  # read "["
-            if c in delim_openbracket: return self._accept(start, 179, "[")     # 178 -> 179*
+        if state == 186:                                  # read "["
+            if c in delim_openbracket: return self._accept(start, 187, "[")     # 186 -> 187*
             return self._error(start, _cannot_follow(c, "'['", "delim_openbracket"))
-        if state == 180:                                  # read "]"
-            if c in delim_closebracket: return self._accept(start, 181, "]")     # 180 -> 181*
+        if state == 188:                                  # read "]"
+            if c in delim_closebracket: return self._accept(start, 189, "]")     # 188 -> 189*
             return self._error(start, _cannot_follow(c, "']'", "delim_closebracket"))
-        if state == 182:                                  # read "{"
-            if c in delim_opencurly: return self._accept(start, 183, "{")     # 182 -> 183*
+        if state == 190:                                  # read "{"
+            if c in delim_opencurly: return self._accept(start, 191, "{")     # 190 -> 191*
             return self._error(start, _cannot_follow(c, "'{'", "delim_opencurly"))
-        if state == 184:                                  # read "}"
-            if c in delim_closecurly:     return self._accept(start, 185, "}")     # 184 -> 185*
+        if state == 192:                                  # read "}"
+            if c in delim_closecurly:     return self._accept(start, 193, "}")     # 192 -> 193*
             return self._error(start, _cannot_follow(c, "'}'", "delim_closecurly"))
 
-        if state == 186:                                  # read ","
-            if c in delim_comma:      return self._accept(start, 187, ",")     # 186 -> 187*
+        if state == 194:                                  # read ","
+            if c in delim_comma:      return self._accept(start, 195, ",")     # 194 -> 195*
             return self._error(start, _cannot_follow(c, "','", "delim_comma"))
-        if state == 188:                                  # read ":"
-            if c in delim_colon:      return self._accept(start, 189, ":")     # 188 -> 189*
+        if state == 196:                                  # read ":"
+            if c in delim_colon:      return self._accept(start, 197, ":")     # 196 -> 197*
             return self._error(start, _cannot_follow(c, "':'", "delim_colon"))
-        if state == 190:                                  # read ";"
-            if c in delim_scolon:       return self._accept(start, 191, ";")     # 190 -> 191*
+        if state == 198:                                  # read ";"
+            if c in delim_scolon:       return self._accept(start, 199, ";")     # 198 -> 199*
             return self._error(start, _cannot_follow(c, "';'", "delim_scolon"))
 
-        # 192 and 194 (the opening quotes) are handled in _td5_strings_comments.
-        # TD2 also draws 192 --delim_dquote--> 193* and 194 --delim_squote--> 195*.
-        # delim_dquote = ascii + { \ " } is exactly the set of characters
-        # that TD5 gives an edge out of 192 (same for 194), so the TD5 edges are
-        # used and 193 / 195 are never reached: no separate quote token.
+        # 269 and 272 (the opening quotes) are handled in _td5_strings_comments.
+        # The quote states lead to string tokens through TD5, not quote tokens.
+        # The quote-content sets define the characters accepted inside each string.
+        # The TD5 states handle the closing quote and following delimiter, so those edges are
+        # used directly; quotes are not emitted as separate tokens.
         raise AssertionError(f"unknown TD2 state {state}")
 
     # ================================================= TD3  Identifiers 196-235
     def _td3_identifiers(self, state: int, c: str, start: int) -> int:
         # identifier = letter (alphanum | _){0,19}: 1 to 20 characters.
-        # State 196 + 2(k-1) means "k characters read"; its final state is the next number.
-        if state == 196:                                  # 1 character
-            if c in alphanum_us: return self._go(198)
-            if c in ID_DELIMITER: return self._accept(start, 197, ID)  # 196 -> 197*
-            return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 198:                                  # 2 characters
-            if c in alphanum_us: return self._go(200)
-            if c in ID_DELIMITER: return self._accept(start, 199, ID)  # 198 -> 199*
-            return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 200:                                  # 3 characters
+        # States 200-218 cover characters 1-10; states 221-239 cover characters 11-20.
+        if state == 200:                                  # 1 character
             if c in alphanum_us: return self._go(202)
             if c in ID_DELIMITER: return self._accept(start, 201, ID)  # 200 -> 201*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 202:                                  # 4 characters
+        if state == 202:                                  # 2 characters
             if c in alphanum_us: return self._go(204)
             if c in ID_DELIMITER: return self._accept(start, 203, ID)  # 202 -> 203*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 204:                                  # 5 characters
+        if state == 204:                                  # 3 characters
             if c in alphanum_us: return self._go(206)
             if c in ID_DELIMITER: return self._accept(start, 205, ID)  # 204 -> 205*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 206:                                  # 6 characters
+        if state == 206:                                  # 4 characters
             if c in alphanum_us: return self._go(208)
             if c in ID_DELIMITER: return self._accept(start, 207, ID)  # 206 -> 207*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 208:                                  # 7 characters
+        if state == 208:                                  # 5 characters
             if c in alphanum_us: return self._go(210)
             if c in ID_DELIMITER: return self._accept(start, 209, ID)  # 208 -> 209*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 210:                                  # 8 characters
+        if state == 210:                                  # 6 characters
             if c in alphanum_us: return self._go(212)
             if c in ID_DELIMITER: return self._accept(start, 211, ID)  # 210 -> 211*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 212:                                  # 9 characters
+        if state == 212:                                  # 7 characters
             if c in alphanum_us: return self._go(214)
             if c in ID_DELIMITER: return self._accept(start, 213, ID)  # 212 -> 213*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 214:                                  # 10 characters
+        if state == 214:                                  # 8 characters
             if c in alphanum_us: return self._go(216)
             if c in ID_DELIMITER: return self._accept(start, 215, ID)  # 214 -> 215*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 216:                                  # 11 characters
+        if state == 216:                                  # 9 characters
             if c in alphanum_us: return self._go(218)
             if c in ID_DELIMITER: return self._accept(start, 217, ID)  # 216 -> 217*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 218:                                  # 12 characters
-            if c in alphanum_us: return self._go(220)
+        if state == 218:                                  # 10 characters
+            if c in alphanum_us: return self._go(221)
             if c in ID_DELIMITER: return self._accept(start, 219, ID)  # 218 -> 219*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 220:                                  # 13 characters
-            if c in alphanum_us: return self._go(222)
-            if c in ID_DELIMITER: return self._accept(start, 221, ID)  # 220 -> 221*
+        if state == 221:                                  # 11 characters
+            if c in alphanum_us: return self._go(223)
+            if c in ID_DELIMITER: return self._accept(start, 222, ID)  # 221 -> 222*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 222:                                  # 14 characters
-            if c in alphanum_us: return self._go(224)
-            if c in ID_DELIMITER: return self._accept(start, 223, ID)  # 222 -> 223*
+        if state == 223:                                  # 12 characters
+            if c in alphanum_us: return self._go(225)
+            if c in ID_DELIMITER: return self._accept(start, 224, ID)  # 223 -> 224*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 224:                                  # 15 characters
-            if c in alphanum_us: return self._go(226)
-            if c in ID_DELIMITER: return self._accept(start, 225, ID)  # 224 -> 225*
+        if state == 225:                                  # 13 characters
+            if c in alphanum_us: return self._go(227)
+            if c in ID_DELIMITER: return self._accept(start, 226, ID)  # 225 -> 226*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 226:                                  # 16 characters
-            if c in alphanum_us: return self._go(228)
-            if c in ID_DELIMITER: return self._accept(start, 227, ID)  # 226 -> 227*
+        if state == 227:                                  # 14 characters
+            if c in alphanum_us: return self._go(229)
+            if c in ID_DELIMITER: return self._accept(start, 228, ID)  # 227 -> 228*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 228:                                  # 17 characters
-            if c in alphanum_us: return self._go(230)
-            if c in ID_DELIMITER: return self._accept(start, 229, ID)  # 228 -> 229*
+        if state == 229:                                  # 15 characters
+            if c in alphanum_us: return self._go(231)
+            if c in ID_DELIMITER: return self._accept(start, 230, ID)  # 229 -> 230*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 230:                                  # 18 characters
-            if c in alphanum_us: return self._go(232)
-            if c in ID_DELIMITER: return self._accept(start, 231, ID)  # 230 -> 231*
+        if state == 231:                                  # 16 characters
+            if c in alphanum_us: return self._go(233)
+            if c in ID_DELIMITER: return self._accept(start, 232, ID)  # 231 -> 232*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 232:                                  # 19 characters
-            if c in alphanum_us: return self._go(234)
-            if c in ID_DELIMITER: return self._accept(start, 233, ID)  # 232 -> 233*
+        if state == 233:                                  # 17 characters
+            if c in alphanum_us: return self._go(235)
+            if c in ID_DELIMITER: return self._accept(start, 234, ID)  # 233 -> 234*
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
-        if state == 234:                                  # 20 characters (the maximum)
-            if c in ID_DELIMITER: return self._accept(start, 235, ID)  # 234 -> 235*
-            if c in alphanum_us: return self._error(start, ID_TOO_LONG)  # no edge for a 21st character
+        if state == 235:                                  # 18 characters
+            if c in alphanum_us: return self._go(237)
+            if c in ID_DELIMITER: return self._accept(start, 236, ID)  # 235 -> 236*
+            return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
+        if state == 237:                                  # 19 characters
+            if c in alphanum_us: return self._go(239)
+            if c in ID_DELIMITER: return self._accept(start, 238, ID)  # 237 -> 238*
+            return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
+        if state == 239:                                  # 20 characters (the maximum)
+            if c in ID_DELIMITER: return self._accept(start, 240, ID)  # 239 -> 240*
+            if c in alphanum_us: return self._overflow_error(start, ID_TOO_LONG)
             return self._error(start, _cannot_follow(c, "an identifier", "delim_id"))
         raise AssertionError(f"unknown TD3 state {state}")
 
-    # ============================================ TD4  Integer Literals 236-271
+    # ============================================ TD4  Integer and Float Literals 241-268 (+ supplemental 300)
     def _td4_integer_literals(self, state: int, c: str, start: int) -> int:
         # wharfa_lit: leading zeros do not count; then 1-8 significant digits.
-        # ---- positive: 0 --0--> 236, 0 --digit--> 238 ----
-        if state == 236:                                  # read "0", "00", ...  leading zeros do not count
-            if c == "0":       return self._go(236)       # adj: keep leading zeros in the lexeme
-            if c in digit:     return self._go(238)
-            if c == ".":       return self._go(254)       # adj: decimal point starts a float
-            if c in delim_num or c == EOF: return self._accept(start, 237, WHARFA_LIT)  # 236 -> 237*
+        # ---- positive: 0 --0--> 241, 0 --digit--> 243 ----
+        if state == 241:                                  # read "0", "00", ...  leading zeros do not count
+            if c == "0":       return self._go(241)       # adj: keep leading zeros in the lexeme
+            if c in digit:     return self._go(243)
+            if c == ".":       return self._go(259)       # adj: decimal point starts a float
+            if c in delim_num: return self._accept(start, 242, WHARFA_LIT)  # 241 -> 242*
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
-        if state == 238:                                  # 1 significant digit
-            if c in numbers:   return self._go(240)
-            if c == ".":       return self._go(254)       # adj: decimal point starts a float
-            if c in delim_num or c == EOF: return self._accept(start, 239, WHARFA_LIT)  # 238 -> 239*
+        if state == 243:                                  # 1 significant digit
+            if c in numbers:   return self._go(245)
+            if c == ".":       return self._go(259)       # adj: decimal point starts a float
+            if c in delim_num: return self._accept(start, 244, WHARFA_LIT)  # 243 -> 244*
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
-        if state == 240:                                  # 2 significant digits
-            if c in numbers:   return self._go(242)
-            if c == ".":       return self._go(254)       # adj: decimal point starts a float
-            if c in delim_num or c == EOF: return self._accept(start, 241, WHARFA_LIT)  # 240 -> 241*
+        if state == 245:                                  # 2 significant digits
+            if c in numbers:   return self._go(247)
+            if c == ".":       return self._go(259)       # adj: decimal point starts a float
+            if c in delim_num: return self._accept(start, 246, WHARFA_LIT)  # 245 -> 246*
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
-        if state == 242:                                  # 3 significant digits
-            if c in numbers:   return self._go(244)
-            if c == ".":       return self._go(254)       # adj: decimal point starts a float
-            if c in delim_num or c == EOF: return self._accept(start, 243, WHARFA_LIT)  # 242 -> 243*
+        if state == 247:                                  # 3 significant digits
+            if c in numbers:   return self._go(249)
+            if c == ".":       return self._go(259)       # adj: decimal point starts a float
+            if c in delim_num: return self._accept(start, 248, WHARFA_LIT)  # 247 -> 248*
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
-        if state == 244:                                  # 4 significant digits
-            if c in numbers:   return self._go(246)
-            if c == ".":       return self._go(254)       # adj: decimal point starts a float
-            if c in delim_num or c == EOF: return self._accept(start, 245, WHARFA_LIT)  # 244 -> 245*
+        if state == 249:                                  # 4 significant digits
+            if c in numbers:   return self._go(251)
+            if c == ".":       return self._go(259)       # adj: decimal point starts a float
+            if c in delim_num: return self._accept(start, 250, WHARFA_LIT)  # 249 -> 250*
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
-        if state == 246:                                  # 5 significant digits
-            if c in numbers:   return self._go(248)
-            if c == ".":       return self._go(254)       # adj: decimal point starts a float
-            if c in delim_num or c == EOF: return self._accept(start, 247, WHARFA_LIT)  # 246 -> 247*
+        if state == 251:                                  # 5 significant digits
+            if c in numbers:   return self._go(253)
+            if c == ".":       return self._go(259)       # adj: decimal point starts a float
+            if c in delim_num: return self._accept(start, 252, WHARFA_LIT)  # 251 -> 252*
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
-        if state == 248:                                  # 6 significant digits
-            if c in numbers:   return self._go(250)
-            if c == ".":       return self._go(254)       # adj: decimal point starts a float
-            if c in delim_num or c == EOF: return self._accept(start, 249, WHARFA_LIT)  # 248 -> 249*
+        if state == 253:                                  # 6 significant digits
+            if c in numbers:   return self._go(255)
+            if c == ".":       return self._go(259)       # adj: decimal point starts a float
+            if c in delim_num: return self._accept(start, 254, WHARFA_LIT)  # 253 -> 254*
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
-        if state == 250:                                  # 7 significant digits
-            if c in numbers:   return self._go(252)
-            if c == ".":       return self._go(254)       # adj: decimal point starts a float
-            if c in delim_num or c == EOF: return self._accept(start, 251, WHARFA_LIT)  # 250 -> 251*
+        if state == 255:                                  # 7 significant digits
+            if c in numbers:   return self._go(257)
+            if c == ".":       return self._go(259)       # adj: decimal point starts a float
+            if c in delim_num: return self._accept(start, 256, WHARFA_LIT)  # 255 -> 256*
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
-        if state == 252:                                  # 8 significant digits (the maximum)
-            if c == ".":       return self._go(254)       # adj: decimal point is allowed after digit eight
-            if c in delim_num or c == EOF: return self._accept(start, 253, WHARFA_LIT)  # 252 -> 253*
-            if c in numbers:   return self._accept(start, 253, WHARFA_LIT, retract=1)  # adj: split before digit nine
+        if state == 257:                                  # 8 significant digits (the maximum)
+            if c == ".":       return self._go(259)       # adj: decimal point is allowed after digit eight
+            if c in delim_num: return self._accept(start, 258, WHARFA_LIT)  # 257 -> 258*
+            if c in numbers:   return self._overflow_error(start, INT_TOO_LONG)
             return self._error(start, _cannot_follow(c, "a wharfa literal", "delim_num"))
 
-        if state == 254:                                  # read the decimal point
-            if c in numbers:   return self._go(256)
-            return self._error(start, "a flo literal needs a digit after '.'")
-        if state == 256:                                  # 1 fraction digit
-            if c in numbers:   return self._go(258)
-            if c in delim_num or c == EOF: return self._accept(start, 257, FLO_LIT)
+        if state == 259:                                  # read the decimal point
+            if c in numbers:   return self._go(261)
+            if c in delim_num: return self._accept(start, 260, FLO_LIT)
             return self._error(start, _cannot_follow(c, "a flo literal", "delim_num"))
-        if state == 258:                                  # 2 fraction digits
-            if c in numbers:   return self._go(260)
-            if c in delim_num or c == EOF: return self._accept(start, 259, FLO_LIT)
+        if state == 261:                                  # 1 fraction digit
+            if c in numbers:   return self._go(263)
+            if c in delim_num: return self._accept(start, 262, FLO_LIT)
             return self._error(start, _cannot_follow(c, "a flo literal", "delim_num"))
-        if state == 260:                                  # 3 fraction digits
-            if c in numbers:   return self._go(262)
-            if c in delim_num or c == EOF: return self._accept(start, 261, FLO_LIT)
+        if state == 263:                                  # 2 fraction digits
+            if c in numbers:   return self._go(265)
+            if c in delim_num: return self._accept(start, 264, FLO_LIT)
             return self._error(start, _cannot_follow(c, "a flo literal", "delim_num"))
-        if state == 262:                                  # 4 fraction digits (the maximum)
-            if c in delim_num or c == EOF: return self._accept(start, 263, FLO_LIT)
-            if c in numbers:   return self._go(264)       # consume excess digits; value keeps four places
+        if state == 265:                                  # 3 fraction digits
+            if c in numbers:   return self._go(267)
+            if c in delim_num: return self._accept(start, 266, FLO_LIT)
             return self._error(start, _cannot_follow(c, "a flo literal", "delim_num"))
-        if state == 264:                                  # discard remaining fractional digits
-            if c in numbers:   return self._go(264)
-            if c in delim_num or c == EOF: return self._accept(start, 263, FLO_LIT)
+        if state == 267:                                  # 4 fraction digits; read one more to round
+            if c in delim_num: return self._accept(start, 268, FLO_LIT)
+            if c in numbers:   return self._go(300)       # supplemental state records rounding lookahead
+            return self._error(start, _cannot_follow(c, "a flo literal", "delim_num"))
+        if state == 300:                                  # consume fractional digits beyond the diagram's four
+            if c in numbers:   return self._go(300)
+            if c in delim_num: return self._accept(start, 268, FLO_LIT)
             return self._error(start, _cannot_follow(c, "a flo literal", "delim_num"))
         raise AssertionError(f"unknown TD4 state {state}")
 
-    # ================================= TD5  String Literals and Comments 272-286
+    # ================================= TD5  String Literals and Comments 269-281 (+ supplemental 301-302)
     def _td5_strings_comments(self, state: int, c: str, start: int) -> int:
-        # ---- strina literal in double quotes: 0 --"--> 192 ----
-        if state == 192:                                  # inside "..."
-            if c == '"':          return self._go(272)    # closing quote
-            if c == "\\":         return self._go(274)    # start of an escape
-            if c in delim_dqopen - {'"', "\\"}: return self._go(192)  # loop
+        # ---- strina literal in double quotes: 0 --"--> 269 ----
+        if state == 269:                                  # inside "..."
+            if c == '"':          return self._go(270)    # closing quote
+            if c == "\\":         return self._go(301)    # start of an escape
+            if c in delim_dqopen - {'"', "\\"}: return self._go(269)  # loop
             if c in {NEWLINE, EOF}: return self._unterminated_string(start, STR_NO_CLOSE_DQ)
-            return self._error_inside(192, _not_ascii(c, "a strina literal"), self.pos)
-        if state == 274:                                  # read "\" inside "..."
-            if "\\" + c in escape: return self._go(192)  # \" \' \\ \n \t \0
-            if c in {NEWLINE, EOF}:  return self._unterminated_string(start, STR_NO_CLOSE_DQ)
-            return self._error_inside(192, _bad_escape(c), self.pos - 1)
-        if state == 272:                                  # read the closing "
-            if c in delim_dqclose or c == EOF: return self._accept(start, 273, STRINA_LIT)  # adj: eof may follow a closed string
+            return self._error_inside(269, _not_ascii(c, "a strina literal"), self.pos)
+        if state == 301:                                  # read "\" inside "..."
+            if "\\" + c in escape: return self._go(269)  # \" \' \\ \n \t \0
+            if c == NEWLINE: return self._error_inside(269, _bad_escape(c), self.pos - 1)
+            if c == EOF: return self._unterminated_string(start, STR_NO_CLOSE_DQ)
+            return self._error_inside(269, _bad_escape(c), self.pos - 1)
+        if state == 270:                                  # read the closing "
+            if c in delim_dqclose or c == EOF: return self._accept(start, 271, STRINA_LIT)  # adj: eof may follow a closed string
             return self._error(start, _cannot_follow(c, "a strina literal", "delim_dqclose"))
 
         # ---- strina literal in single quotes: 0 --'--> 194 ----
-        if state == 194:                                  # inside '...'
-            if c == "'":          return self._go(275)    # closing quote
-            if c == "\\":         return self._go(277)    # start of an escape
-            if c in delim_sqopen - {"'", "\\"}: return self._go(194)  # loop
+        if state == 272:                                  # inside '...'
+            if c == "'":          return self._go(273)    # closing quote
+            if c == "\\":         return self._go(302)    # start of an escape
+            if c in delim_sqopen - {"'", "\\"}: return self._go(272)  # loop
             if c in {NEWLINE, EOF}: return self._unterminated_string(start, STR_NO_CLOSE_SQ)
-            return self._error_inside(194, _not_ascii(c, "a strina literal"), self.pos)
-        if state == 277:                                  # read "\" inside '...'
-            if "\\" + c in escape: return self._go(194)
-            if c in {NEWLINE, EOF}:  return self._unterminated_string(start, STR_NO_CLOSE_SQ)
-            return self._error_inside(194, _bad_escape(c), self.pos - 1)
-        if state == 275:                                  # read the closing '
-            if c in delim_sqclose or c == EOF: return self._accept(start, 276, STRINA_LIT)  # adj: eof may follow a closed string
+            return self._error_inside(272, _not_ascii(c, "a strina literal"), self.pos)
+        if state == 302:                                  # read "\" inside '...'
+            if "\\" + c in escape: return self._go(272)
+            if c == NEWLINE: return self._error_inside(272, _bad_escape(c), self.pos - 1)
+            if c == EOF: return self._unterminated_string(start, STR_NO_CLOSE_SQ)
+            return self._error_inside(272, _bad_escape(c), self.pos - 1)
+        if state == 273:                                  # read the closing '
+            if c in delim_sqclose or c == EOF: return self._accept(start, 274, STRINA_LIT)  # adj: eof may follow a closed string
             return self._error(start, _cannot_follow(c, "a strina literal", "delim_sqclose"))
 
         # ---- single-line comment: 0 --'-'--> 141 --'-'--> 278 ----
-        if state == 278:                                  # read "--"
-            if c in {NEWLINE, EOF}:               return self._accept(start, 279, COMMENT_SL)   # 278 -> 279*
-            if c in delim_slcomment: return self._go(280)
+        if state == 275:                                  # read "--"
+            if c in {NEWLINE, EOF}:               return self._accept(start, 276, COMMENT_SL)   # 275 -> 276*
+            if c in delim_slcomment: return self._go(275)
             if c == "/":                       return self._error(start, STRAY_CLOSER)
-            return self._error_inside(280, _not_ascii(c, "a comment"), self.pos)
-        if state == 280:                                  # inside "-- ..."
-            if c in ascii:          return self._go(280)                          # loop
-            if c in {NEWLINE, EOF}:               return self._accept(start, 281, COMMENT_SL)   # 280 -> 281*
-            return self._error_inside(280, _not_ascii(c, "a comment"), self.pos)
-
+            return self._error_inside(275, _not_ascii(c, "a comment"), self.pos)
         # ---- multi-line comment: 0 --/--> 149 --'-'--> 153 --'-'--> 282 (comment transitions) ----
-        if state == 282:                                  # inside "/-- ..."
-            if c == "-":          return self._go(283)
-            if c in delim_mlcomment_open: return self._go(282)  # loop
+        if state == 277:                                  # inside "/-- ..."
+            if c == "-":          return self._go(278)
+            if c in delim_mlcomment_open: return self._go(277)  # loop
             if c == EOF:          return self._error(start, ML_UNTERMINATED)
-            return self._error_inside(282, _not_ascii(c, "a comment"), self.pos)
-        if state == 283:                                  # read "-" inside the comment
-            if c == "-":          return self._go(284)
-            if c in delim_mlcomment_open: return self._go(282)  # a lone "-" is comment text
+            return self._error_inside(277, _not_ascii(c, "a comment"), self.pos)
+        if state == 278:                                  # read "-" inside the comment
+            if c == "-":          return self._go(279)
+            if c in delim_mlcomment_open: return self._go(277)  # a lone "-" is comment text
             if c == EOF:          return self._error(start, ML_UNTERMINATED)
-            return self._error_inside(282, _not_ascii(c, "a comment"), self.pos)
-        if state == 284:                                  # read "--" inside the comment
-            if c == "/":          return self._go(285)    # the first --/ closes the comment
-            if c == "-":          return self._go(284)    # "---/" still closes
-            if c in delim_mlcomment_open:   return self._go(282)    # "--x" is comment text
+            return self._error_inside(277, _not_ascii(c, "a comment"), self.pos)
+        if state == 279:                                  # read "--" inside the comment
+            if c == "/":          return self._go(280)    # the first --/ closes the comment
+            if c == "-":          return self._go(279)    # "---/" still closes
+            if c in delim_mlcomment_open:   return self._go(277)    # "--x" is comment text
             if c == EOF:          return self._error(start, ML_UNTERMINATED)
-            return self._error_inside(282, _not_ascii(c, "a comment"), self.pos)
-        if state == 285:                                  # read the closing "--/"
-            if c in delim_mlcomment_close: return self._accept(start, 286, COMMENT_ML)    # 285 -> 286*
+            return self._error_inside(277, _not_ascii(c, "a comment"), self.pos)
+        if state == 280:                                  # read the closing "--/"
+            if c in delim_mlcomment_close: return self._accept(start, 281, COMMENT_ML)    # 280 -> 281*
             return self._error(start, _cannot_follow(c, "'--/'", "delim_mlcomment_close"))
 
         raise AssertionError(f"unknown TD5 state {state}")

@@ -1,0 +1,67 @@
+Reserve words/Symbols,Delimeter,Definition (The Set),Missing Delims,,Remove Delims,,Sample Code,,,
+,,,Paper,Lexer,Paper,Lexer,,,,
+strina,"{delim_space, newline}",delim_datatype,(,newline,,,,,REGULAR DEFINITIONS,
+wharfa,"{delim_space, newline }",delim_datatype,(,newline,,,,,whitespace,"{space, newline, tab}"
+flo,"{delim_space, newline }",delim_datatype,(,newline,,,,,caplet,"{ A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z }"
+trua,"{delim_space, newline}",delim_datatype,(,newline,,,,,lowlet,"{ a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z }"
+lis,"{delim_space, newline}",delim_datatype,(,newline,,,,,letter,"{ caplet, lowlet }"
+glossare,"{delim_space, newline}",delim_datatype,(,newline,,,,,digit,"{ 1, 2, 3, 4, 5, 6, 7, 8, 9 }"
+prin,"{ delim_space, (}",delim_io,newline,,,,,,escape,"{\"", \' , \\ , \n , \t, \0 }"
+inpub,"{ delim_space, ( }",delim_io,newline,,,,,,numbers,"{ 0, digit }"
+formo,"{ delim_space, ( }",delim_io,newline,,,,,,alphanum,"{ letter, numbers}"
+innum,"{ delim_space, ( }",delim_io,newline,,,,,,mathop,"{ +, -, *, /, % }"
+inflo,"{ delim_space, ( }",delim_io,newline,,,,,,relop_ch,"{ <, >, =, ! }"
+an,"{ delim_space, ( }",delim_logic,newline,,,,,,assops,"{=, +=, -=, *=, /=, %=}"
+othan,"{ delim_space, ( }",delim_logic,newline,,,,,,ascii,"{ any printable ascii character }
+{printable ASCII (32-126) + tab }"
+neve,"{ delim_space, ( }",delim_logic,newline,newline,,,,,str_char,"{ascii, special characters}"
+Inaccu,"{ delim_space, ), }, ], ;, , , :, mathop, relop_ch, eof}",delim_bool,newline,,":, mathop, <, >, eof",":, mathop, <, >, eof",,,ml_char,"{ascii, whitespace}"
+Trua,"{ delim_space, ), }, ], ;, , , :, mathop, relop_ch, eof}",delim_bool,newline,,":, mathop, <, >, eof",":, mathop, <, >, eof",,,eof,{ end-of-file marker }
+belial,"{ delim_space, ( }",delim_logic,newline,,,,,,special characters,{unicode symbols not found on ascii table}
+belsa,"{ delim_space, ( }",delim_logic,newline,newline,,,,,delim_space,"space, tab"
+elsa,"{ delim_space, newline, { }",delim_block,,,,,,,delim_quote,", """
+lood,"{ delim_space, ( }",delim_logic,newline,,,,,,delim_datatype,"delim_space, newline"
+cycla,"{ delim_space, ( }",delim_logic,newline,,,,,,delim_io,"delim_space, ("
+paus,"{ delim_space, newline, ; }",delim_stmt,newline,,,,,,delim_bool,"Delim_space, newline, ), }, ], ;, , , :, mathop, relop_ch, eof"
+persis,"{ delim_space, newline, ; }",delim_stmt,newline,,,,,,delim_logic,"delim_space, ("
+pas,"{ delim_space, newline, ; }",delim_stmt,newline,,,,,,delim_block,"delim_space, newline, {"
+reor,"{ delim_space, delim_quote, newline, ;, (, [, {, - }",delim_struc,,,,,,,delim_stmt,"delim_space, newline, ;"
+deleo,{ delim_space},delim_deleo,newline,newline,,,,,delim_struc,"delim_space, delim_quote, newline, ; (, [, {, -"
+const,{ delim_space },delim_const,newline,newline,,,,,delim_deleo,delim_space
+insid,"{ delim_space, newline, (, [ , “ , ‘ , - }",delim_insid,,,"(, -",,,,delim_const,delim_space
+"""+""","{ delim_space, letter, numbers, delim_quote, (, -}",delim_plus,newline,"newline, -",,,,,delim_insid,"delim_space, newline, (, [ , “ , ‘"
+-,"{ delim_space, letter, numbers, ( }",delim_minus,newline,newline,,,,,delim_plus,"delim_space, letter, numbers, delim_quote, (, -"
+*,"{ delim_space, letter, numbers, ( }",delim_arithmetic,newline,"newline, -",,,,,delim_minus,"delim_space, letter, numbers, ("
+/,"{ delim_space, letter, numbers, ( }",delim_arithmetic,newline,"newline, -",,,,,delim_arithmetic,"delim_space, letter, numbers, (, -"
+%,"{ delim_space, letter, numbers, ( }",delim_arithmetic,newline,"newline, -",,,,,delim_oper,"delim_space, letter, numbers, (, -"
+<,"{ delim_space, letter, numbers, (, - }",delim_oper,newline,newline,,,,,delim_equality,"delim_space, delim_quote, letter, numbers, (, - , [ , {"
+>,"{ delim_space, letter, numbers, (, - }",delim_oper,newline,newline,,,,,delim_equal,"delim_space, delim_quote, letter, numbers, (, [, {, -"
+<=,"{ delim_space, letter, numbers, (, - }",delim_oper,newline,newline,,,,,delim_augoper,"delim_space, letter, numbers, delim_quote, (, -"
+>=,"{ delim_space, letter, numbers, (, - }",delim_oper,newline,newline,,,,,delim_openparen,"delim_space, letter, numbers, delim_quote, (, ), [, -, {"
+"""==""","{ delim_space, delim_quote, letter, numbers, (, - , [ , { }",delim_equality,newline,newline ,,,,,delim_closeparen,"delim_space, newline, relop_ch, ), ], {, }, ;, ,, mathop"
+!=,"{ delim_space, delim_quote, letter, numbers, (, - , [ , { }",delim_equality,newline,newline ,,,,,delim_openbracket,"delim_space, letter, numbers, delim_quote, (, [, {, -"
+=',"{ delim_space, delim_quote, letter, numbers, (, [, {, - }",delim_equal,newline,newline,,,,,delim_closebracket,"delim_space, newline, relop_ch, ), [, ], }, ;, ,, mathop"
++=',"{ delim_space, delim_quote, letter, numbers, (, - }",elim_augplus,newline,newline,,,,,delim_opencurly,"delim_space, newline, letter, numbers, delim_quote"
+-=,"{ delim_space, letter, numbers, (, - }",delim_augoper,newline,newline,,,,,delim_closecurly,"delim_space, newline, delim_quote, newline, relop_ch, ), ] , ;"
+*=,"{ delim_space, letter, numbers, (, - }",delim_augoper,newline,newline,,,,,delim_comma,"delim_space, newline, letter, numbers, delim_quote, (, [, {, -"
+/=,"{ delim_space, letter, numbers, (, - }",delim_augoper,newline,newline,,,,,delim_dqopen,"delim_space, ascii"
+%=,"{ delim_space, letter, numbers, (, - }",delim_augoper,newline,newline,,,,,delim_dqclose,"delim_space, newline, , , ) , ] , } , ;, : , relop_ch, mathop"
+(,"{delim_space, letter, numbers, delim_quote, (, ), [, -, {}",delim_openparen,newline,newline,,,,,delim_sqopen,"delim_space, ascii"
+),"{delim_space, newline, relop_ch, ), ], {, }, ;, ,, mathop}",delim_closeparen,,"relop_ch, mathop",],],,,delim_sqclose,"delim_space, newline, , , ) , ] , } , ; , : , relop_ch, mathop"
+[,"{delim_space, letter, numbers, delim_quote, (, [, {, - }",delim_openbracket,newline,,(,(,,,delim_colon,"delim_space, newline, letter, numbers, delim_quote, - , [, {"
+],"{delim_space, newline, relop_ch, ), [, ], }, ;, ,, mathop}",delim_closebracket,,,,,,,delim_scolon,"delim_space, newline, letter, } , -, /, eof"
+{,"{delim_space, newline, letter, numbers, delim_quote }",delim_opencurly,,,,,,,delim_slcomment,"delim_space, (ascii - /), special characters, eof"
+},"{delim_space, newline, delim_quote, relop_ch, ), ] , ;}",delim_closecurly,,,;,,,,delim_mlcomment_open,"ascii, whitespace, eof"
+Others,,,,,,,,,delim_mlcomment_close,"ascii, whitespace, eof"
+",","{delim_space, letter, numbers, delim_quote, (, [, {, -}",delim_comma,newline,newline,,,,,delim_id,"delim_space, newline, mathop, assops, relop_ch, [, ], }, (,), ; , , , eof"
+""" (opening)","{delim_space, ascii }",delim_dqopen,newline,newline,,,,,delim_num,"delim_space, newline, mathop, relop_ch, ; , , , ], }, ) , : , eof"
+""" (closing)","{delim_space, newline, , , ) , ] , } , ;, : , relop_ch, mathop }",delim_dqclose,,,">, <, -, *, /",">, <, -, *, /",,,,
+ (opening),"{delim_space, ascii }",delim_sqopen,newline,newline,,,,,,
+ (closing),"{delim_space, newline, , , ) , ] , } , ; , : , relop_ch, mathop }",delim_sqclose,,,">, <, -, *, /",">, <, -, *, /",,,,
+:,"{delim_space, newline, letter, numbers, delim_quote, - , [, { }",delim_colon,,,,,,,,
+;,"{delim_space, newline, letter, }, -, /, eof}",delim_scolon,,,-,-,,,,
+--,"{delim_space, ascii, special characters}",delim_slcomment,newline,,,,,,,
+/--,"{ delim_space, ascii, special characters, newline }",delim_mlcomment_open,,,,,,,,
+--/,"{ delim_space, letter, special characters, newline, }, eof, / }",delim_mlcomment_close,,,,,,,,
+"{delim_space, newline, mathop, assops, relop_ch, [, ], }, (,), ; , , , eof }",,delim_id,,"mathop, assops, relop_ch",,eof,,,,
+"{delim_space, newline, mathop, relop_ch, ; , ], }, ) }",,delim_num,,,,,,,,

@@ -79,7 +79,7 @@ for e in errors:
 tokens, errors = tokenize(source, skip_comments=True)    # drop comment tokens
 ```
 
-* `Token` fields: `type`, exact-source `lexeme`, `line`, `column` (1-based), and optional numeric `value`. For `flo_lit`, the lexeme preserves all entered digits while `value` uses at most four fractional digits, truncated without rounding per the approved p. 21 interpretation (D-007). For `wharfa_lit`, `value` is the parsed integer.
+* `Token` fields: `type`, normalized `lexeme`, `line`, `column` (1-based), and optional numeric `value`. Integer lexemes remove leading zeroes (`00012` becomes `12`; all zeroes become `0`). Float lexemes retain at most four fractional places, round excess precision half up, and trim trailing fractional zeroes while retaining one digit (`1.2300` becomes `1.23`; `0.0000` becomes `0.0`).
 * Token types: a reserved word or symbol is its own type (`belial`, `wharfa`, `==`, `;` …).
   Literals are `id`, `wharfa_lit`, `strina_lit`, `trua_lit` (`Trua` / `Inaccu`).
   Each recognized source space, tab, and newline is also emitted as `space`, `tab`,
@@ -94,7 +94,7 @@ tokens, errors = tokenize(source, skip_comments=True)    # drop comment tokens
 ## Tests
 
 ```bash
-python -m unittest                              # quick: 108 tests, OK
+.venv/Scripts/python.exe -m pytest tests/test_lexer.py -q
 python -m unittest discover -s tests -v         # verbose, one line per test
 python -m unittest tests.test_td4_integers      # a single file
 ```

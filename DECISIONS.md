@@ -104,3 +104,28 @@ This log records decisions evidenced by approved sources or explicitly approved 
 - Semantic checks, symbol table/scope rules and any IR/code generation: see P-10.
 - All unresolved lexer discrepancies beyond the examples in D-003: audit P-03 and existing `backend/pothos/DECISIONS.md`.
 
+
+
+## D-009 ? Follow the user-approved lexer diagrams and delimiter QA CSV
+
+- **Date:** 2026-11-13
+- **Topic:** Lexer transitions, delimiter sets, numeric normalization, and overflow
+- **Context:** The user added transition-diagram images and a delimiter QA CSV in `Documentation/`, clarified that ?characters? means identifiers, and explicitly chose to follow the CSV where it conflicts with prior code/diagram behavior.
+- **Approved behavior:** Use diagram state IDs in lexer traces. Identifiers remain limited to 20 characters; an identifier ending at EOF is an error because EOF is absent from the approved `delim_id`. Accept raw newlines inside quoted strings. Normalize integer lexemes by removing leading zeroes (`00012` ? `12`, all zeroes ? `0`). Normalize float lexemes by trimming fractional trailing zeroes but retaining at least one fractional digit (`0.0000` ? `0.0`); accept the diagram?s `5.` path as `5.0`. Consume fractional precision beyond four places and round half up to four digits. When a ninth significant digit arrives, report the first eight digits as the overflow error text, then the outer run loop continues by invoking the normal scanner at state 0 on the ninth digit; that suffix may become a token (for example, `123456789;` errors on `12345678` and emits `9`, `;`). Apply the same recovery at identifier length 20: error on the first 20 characters, then the outer run loop invokes the normal scanner at state 0 on character 21. Permit adjacency for `+-`, `*-`, `/-`, and `%-` where the operator delimiter rules allow it; `--` remains a line-comment opener, so subtraction followed by unary minus needs a separating space.
+- **Delimiter inputs:** Apply the current CSV ?Lexer? entries to `charsets.py`; its ?Paper? column is not a paper revision decision. The submitted PDF has a different fingerprint from the previously indexed snapshot, so paper reconciliation remains separate and this task does not edit the paper or `SPECIFICATION_INDEX.md`.
+- **Implementation note:** Diagram state IDs are retained; supplemental states 300 (fraction rounding) and 301?302 (escape handling) cover implementation paths not shown as named diagram states.
+- **Affected files:** `backend/pothos/lexer/lexer.py`, `backend/pothos/lexer/charsets.py`, `backend/pothos/main.py`, `tests/test_lexer.py`, lexer references, `DEVELOPMENT.md`, `PROGRESS.md`, and `LEXER_AUDIT.md`.
+- **Verification:** `.venv/Scripts/python.exe -m pytest tests/test_lexer.py -q --tb=no` ? 79 passed, 7 failed. Remaining failures are six pre-existing EOF expectations after `]`/`)` and the pre-existing `+25` lexical-error expectation. Focused smoke checks covered normalized numbers, overflow, operator combinations, identifier EOF, raw newlines, reserved-word/symbol inventory, and trace IDs.
+- **Status:** Approved and implemented for this scoped task; unrelated paper and lexer discrepancies remain open.
+
+
+## D-010 ? Apply the student?s explicit delimiter additions and removals
+
+- **Date:** 2026-11-13
+- **Topic:** QA delimiter corrections
+- **Context:** The student supplied an explicit add/remove list from the delimiter QA sheet and authorized updating `charsets.py`.
+- **Approved changes:** Add `(` after datatype words (`strina`, `wharfa`, `flo`, `trua`, `lis`, `glossare`); add newline to the named I/O, logic, statement, `deleo`, `const`, arithmetic/relational/assignment, open grouping, comma, and opening-quote delimiter sets; add `-` after `+`, `*`, `/`, `%` where listed. Remove the listed colon/mathop/`<`/`>`/EOF entries from boolean delimiters; remove `(` and `-` from `delim_insid`; remove `]` from `delim_closeparen`; remove `(` from `delim_openbracket`; remove `;` from `delim_closecurly`; remove `>`, `<`, `-`, `*`, `/` from closing quote sets; remove `-` from semicolon delimiters. Add assignment operators to `delim_id` and EOF to `delim_num`.
+- **Keyword wiring:** `belsa` and `neve` use the newline-enabled logic delimiter set; datatype keywords use the datatype set. Numeric accepting transitions use `delim_num`, including its EOF member.
+- **Affected files:** `backend/pothos/lexer/charsets.py`, `backend/pothos/lexer/lexer.py`, `tests/test_lexer.py`, `LEXER_AUDIT.md`, `PROGRESS.md`, and lexer walkthrough/reference notes.
+- **Verification:** `.venv/Scripts/python.exe -m pytest tests/test_lexer.py -q --tb=no` ? 86 passed, 7 failed after the datatype accepting-state fix. Failures remain the six existing EOF-after-`)`/`]` cases and `+25` lexical-error expectation. `git diff --check` and Python compilation passed.
+- **Status:** Approved and implemented.

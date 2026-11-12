@@ -66,12 +66,12 @@ The following fields apply to every card: status, objective, technical backgroun
 
 ### P-04 — Resolve lexer discrepancies and student-approved rule choices
 
-- **Status:** In Progress (D-007 resolved; unrelated discrepancies still need student choices)
+- **Status:** In Progress (D-009 approved for diagrams/CSV; unrelated discrepancies remain open)
 - **Objective:** Decide the intended behavior where paper, lexer, tests, and notes conflict.
 - **Technical background:** A discrepancy may be a bug, an obsolete test, a paper change, or a conscious exception; code alone cannot decide intent.
 - **Specification references:** Paper pp. 17–20, 42–43, 66–83; specific conflicts summarized in SPECIFICATION_INDEX.md.
 - **Dependencies:** P-01, P-03.
-- **Scope/files:** Review `backend/pothos/DECISIONS.md`, tests and behavior. Explicit cases include non-ASCII in strings/comments, unary plus, and final `]`/`)` at EOF. D-007 flo behavior is approved and implemented per p. 21; retain p. 22's contradictory example as a paper revision issue. For each remaining discrepancy, explain whether correcting the compiler or revising the paper to match verified compiler behavior is preferable, then record the student's choice.
+- **Scope/files:** Review `backend/pothos/DECISIONS.md`, tests and behavior. Explicit cases include non-ASCII in strings/comments, unary plus, and final `]`/`)` at EOF. D-009 records the student's diagram/CSV choices. Keep the separate paper review open; do not infer that paper approval from this lexer task. For each remaining discrepancy, explain whether correcting the compiler or revising the paper to match verified compiler behavior is preferable, then record the student's choice.
 - **Tests:** Define expected cases before code changes; include boundaries and regression expectations.
 - **Acceptance:** Each language-affecting discrepancy is marked approved/provisional/awaiting approval with evidence and expected examples.
 - **Learning objective:** Separate specification interpretation from implementation defects and test defects.
@@ -79,13 +79,13 @@ The following fields apply to every card: status, objective, technical backgroun
 
 ### P-05 — Complete approved lexer corrections and regression suite
 
-- **Status:** In Progress (whitespace-token output, editor/API usability, and approved D-007 float corrections implemented; remaining audit and regression work open)
+- **Status:** In Progress (whitespace/editor updates and D-009 lexer changes implemented; remaining audit and regression work open)
 - **Objective:** Bring lexer behavior into line with approved Pothos rules while preserving verified behavior.
-- **Current scoped item:** D-006 emits recognized spaces as `space` tokens and preserves a literal blank in the lexeme cell. Auto-run refreshes without the manual stale notice; manual mode shows the stale notice; Enter starts a new line at column 1; API source limit is 1 MB. D-007 float correction is approved and implemented: fractional zeroes are valid; digits beyond four are consumed and truncated in the numeric value without rounding, while the source lexeme is retained. D-008 withholds a final identifier/keyword/literal in auto-run until a real following delimiter is entered, while preserving normal EOF handling in manual Run. The p. 22 inconsistency, browser verification, and remaining lexer coverage are open.
+- **Current scoped item:** D-006 emits recognized spaces as `space` tokens and preserves a literal blank in the lexeme cell. Auto-run refreshes without the manual stale notice; manual mode shows the stale notice; Enter starts a new line at column 1; API source limit is 1 MB. D-009 float behavior is approved and implemented: fractional zeroes normalize to at least `.0`, extra precision is consumed and rounded half up to four places, and numeric lexemes are normalized. D-008 withholds a final identifier/keyword/literal in auto-run until a real following delimiter is entered, while preserving normal EOF handling in manual Run. The p. 22 inconsistency, browser verification, and remaining lexer coverage are open.
 - **Technical background:** Scanner correctness is validated at character-class boundaries, token boundaries, EOF, errors, and recovery points.
 - **Specification references:** Approved lexical rules from P-01/P-04.
 - **Dependencies:** P-02, P-03, P-04 for paper/compiler corrections. A separately student-approved output requirement may be implemented as a narrow scoped change while unrelated P-04 discrepancies remain blocked.
-- **Scope/files:** Only approved minimal changes in `backend/pothos/lexer/{lexer.py,charsets.py,tokens.py,errors.py}`, `frontend/script.js`, and focused tests. Keep language rule data findable; avoid refactoring unrelated logic.
+- **Scope/files:** Only approved minimal changes in `backend/pothos/lexer/{lexer.py,charsets.py}`, `backend/pothos/main.py`, focused tests, and lexer/project documentation. Keep language rule data findable; avoid refactoring unrelated logic.
 - **Tests:** Valid/invalid examples per rule, min/max lengths, each transition/retract, EOF, line/column, multiple errors/recovery, Unicode policy, keyword prefixes, API serialization and full lexer regression. For whitespace-token display, verify each recognized whitespace character, repeated spaces and source positions; ensure the space lexeme remains a literal blank in its table cell and the `space` token name identifies it.
 - **Acceptance:** Approved rule matrix passes; no unexplained regression; exact test command/output recorded; student can explain changed transitions.
 - **Learning objective:** Relate character sets and accepting states to observable tokens and errors.
