@@ -1,0 +1,65 @@
+"COUNTERPART
+(C / C++/ Python)"	FUNCTIONS/DESCRIPTION	List of Reserved Words (Proposed)	REGULAR EXPRESSION	EXAMPLES
+Built-in Data Types				
+str	Represents text strings.	strina	(s)(t)(r)(i)(n)(a)	"msg = ""Hello"";
+(implicit declaration)
+
+strina printx(){ reor ""Hi""; }
+(return type)"
+int	Represents integer numbers.	wharfa	(w)(h)(a)(r)(f)(a)	"count = 10;
+(implicit declaration)
+
+wharfa numx(){ reor 0; }
+(return type)"
+float	Represents numbers with decimals.	flo	(f)(l)(o)	"price = 19.99;
+(implicit declaration)
+
+flo flox(){ reor 0.0; }
+(return type)"
+bool	Represents boolean truth values.	truta	(t)(r)(u)(t)(a)	active = Trua ;
+list	Represents ordered sequences.	lis	(l)(i)(s)	"nums = [1, 2, 3];
+
+lis items(){ reor [1]; }
+(return type)"
+dict	Represents key-value mappings.	glossare	(g)(l)(o)(s)(s)(a)(r)(e)	"data = {""a"": 1};
+
+glossare book(){ reor {""a"":1}; }
+(return type)"
+Input / Output Functions				
+print()	Outputs text to the console.	prin()	(p)(r)(i)(n)	prin("Hello");
+input()	Reads input from the user.	inpub()	(i)(n)(p)(u)(b)	txt = inpub();
+format()	Formats string values.	formo()	(f)(o)(r)(m)(o)	s = formo("Sum: {x}");
+int(input())	Reads one line of input as a wharfa.	innum()	(i)(n)(n)(u)(m)	n = innum();
+float(input())	Reads one line of input as a flo.	inflo()	(i)(n)(f)(l)(o)	f = inflo();
+Value & Truth Literals				
+FALSE	Boolean false value.	Inaccu	(I)(n)(a)(c)(c)(u)	flag = Inaccu;
+TRUE	Boolean true value.	Trua	(T)(r)(u)(a)	flag = Trua;
+Logical Operators				
+and	Logical conjunction.	an	(a)(n)	a an b
+or	Logical disjunction.	othan	(o)(t)(h)(a)(n)	a othan b
+not	Logical negation.	neve	(n)(e)(v)(e)	neve active
+Structural Control Flow				
+if	Conditional execution starts.	belial	(b)(e)(l)(i)(a)(l)	belial (x > 0) {}
+elif	Conditional 'else if' branch.	belsa	(b)(e)(l)(s)(a)	belsa (x == 0) {}
+else	Conditional fallback branch.	elsa	(e)(l)(s)(a)	elsa {}
+switch	Evaluates its expression once and enters the first matching cas branch	swil	(s)(w)(i)(l)	swil(x){ cas 1: prin("one"); paus; defal: prin("other"); }
+cas	Marks one match branch inside swil; value followed by :	cas	(c)(a)(s)	cas 1: prin("one"); paus;
+defal	Fallback branch of swil when no cas matches; at most one per swil.	defal	(d)(e)(f)(a)(l)	defal: prin("other");
+for	Iterates over a sequence.	lood	(l)(o)(o)(d)	"lood (x = 0; x < 10; x += 1) {}
+(counted form)"
+while	Loops until condition false.	cycla	(c)(y)(c)(l)(a)	cycla (x > 0) {}
+do-while	Executes its block once, then repeats while its condition is Trua; tested after each iteration.	repec	(r)(e)(p)(e)(c)	"repec {
+prin(“x”);
+} cycla (x>0);"
+break	Exits a loop.	paus	(p)(a)(u)(s)	paus;
+continue	Skips to next iteration.	persis	(p)(e)(r)(s)(i)(s)	persis;
+pass	No-op statement	pas	(p)(a)(s)	pas;
+Structural Definitions				
+return	Returns value from function.	reor	(r)(e)(o)(r)	reor val;
+void	Return type for functions that return no value.	voia	(v)(o)(i)(a)	"voia greet(){ prin(""Hi"");
+reor; }"
+Variable Operations				
+del	Removes objects/references.	deleo	(d)(e)(l)(e)(o)	deleo temp;
+const	Declares a constant	const	(c)(o)(n)(s)(t)	const MAX = 100;
+Object & Collection Membership				
+in	Checks sequence membership.	insid	(i)(n)(s)(i)(d)	x insid nums

@@ -1,0 +1,7 @@
+~ Deliberate lexical errors for recovery examples. ~
+_bad_start = 1;
+wharfa too_many_significant_digits = 123456789;
+this_identifier_name_is_longer_than_twenty = 1;
+strina bad_escape = "not valid: \\q";
+unknown$symbol = 3;
+~ EOF also terminates a comment, so this line is valid text at end of file. ~

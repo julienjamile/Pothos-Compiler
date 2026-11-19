@@ -1,0 +1,10 @@
+~ Integer and float normalization, identifiers, quotes, and escapes. ~
+wharfa leading_zeroes = 000012;
+wharfa significant_limit = 12345678;
+flo rounded = 1.23456;
+flo all_zero_fraction = 0.00000;
+strina double_text = "line\n tab\t brace \\{x\\}";
+strina single_text = 'quote\' slash\\ zero\0';
+wharfa id_twenty_chars = 1;
+prin(double_text);
+prin(single_text);

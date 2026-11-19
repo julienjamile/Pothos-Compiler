@@ -4,6 +4,24 @@
 **Scope:** Compare the current lexer and its tests with the available Pothos lexical rules. This is an inspection record, not an approval to change language behavior.
 **Paper snapshot:** `Latest_Pothos_ProgrammingLanguage.pdf`, 118 pages, SHA-256 `6439B2D9A778B226A7AA80FFCE6699B3DE9B5545B3D7D7E7930298E7D3D40F2F`; lexical material pp. 67–84. This differs from the previously indexed 117-page snapshot. OCR/navigation indicates a one-page shift; exact rules, delimiter tables and transition diagrams still need visual page-by-page checking.
 
+## 2026-11-20 Documentation revision
+
+Inputs reviewed: `Documentation/List of Reserved wORDS.txt`, `List of Reserved Symbols.txt`, `Delimeters.txt`, `Regular Definitions.txt`, both regular-expression lists, the transition-diagram images, `Transition Diagram in text.txt`, and `CFG_first_follow_predict_output.txt`. The reserved-word image is the primary transition reference per the student's direction; the text transcription and CFG are context/supporting evidence. The CFG was not used to implement syntax.
+
+This dated revision supersedes affected values in the older rule matrix below. In particular, the previous D-010 row describing numeric EOF and identifier assignment-operator delimiters no longer describes the current sets.
+
+- The reserved-word image includes `swil`, `cas`, `defal`, `repec`, and `voia`; these were absent from the current lexer and are now recognized as reserved-word tokens with delimiter checks. New named sets were added for `delim_switch`, `delim_case`, `delim_default`, and `delim_void`; existing keyword paths now use the revised `delim_if`, `delim_loop`, and `delim_cyc` categories.
+- The revised delimiter sheet was applied to the corresponding character sets and accepting transitions. Changes include boolean/logic followers, datatype followers, identifier/numeric followers, grouping and operator followers, comma, and semicolon. These supersede prior D-010 choices for affected sets. Regression tests were not run for this revision.
+- The symbol inventory has no clear new token spelling. The text list labels `+=` as `=`, while the symbol diagram shows the augmented operator and the existing lexer token is `+=`; the apparent label typo was not copied into code.
+- The updated string image adds escaped `{` and `}` transitions; both spellings (`\\{`, `\\}`) are now accepted by the existing escape-state handler. The image also uses new state numbers across identifiers, numbers, strings, and comments; the scanner's trace numbering has not yet been remapped.
+- The updated comment image uses `~` as a paired opener/closer and permits EOF from its comment state. The lexer now scans tilde comments, classifies them as `comment_sl` or `comment_ml` based on whether the lexeme contains a newline, and accepts EOF as shown. The older `--` and `/--` comment openers were removed from the active transitions. These changes have not been test-run.
+- The sample programs were updated to use tilde comments. Existing lexer tests still contain expectations for `--` and `/--`; they were not edited or run in this task, so the regression suite is expected to need revised cases before it can establish current behavior.
+- The image shows lowercase `trua`, consistent with the existing lexer. The word list, regular-expression list, delimiter text, and CFG show `truta`. The image was followed for lexer behavior; `truta` remains an unresolved documentation inconsistency and is not an alias.
+- The text transcription contains apparent differences from the image, including `beliasa`/`belsa`, `insub`/`innum`, `trula`/`trua`, and `void`/`voia`. Do not use those spellings to override the image.
+- New word paths use supplemental states 310–332 internally to avoid renumbering existing control flow. Trace output maps them to the revised image's IDs, and does the same for TD2–TD5. Legacy TD1 paths still need their full state-number mapping documented and verified.
+- Reserved-word inventory increased by five. The revised regression suite covers each new word and its trace path; the older 54-entry smoke result remains historical only.
+- Verification on 2026-11-20: Python compilation succeeded; `.venv/Scripts/python.exe -m pytest tests/test_lexer.py -q --tb=short` reported **101 passed**. The suite now uses tilde comments and revised delimiter cases instead of retired `--`/`/--` expectations.
+
 ## Implementation map
 
 - `backend/pothos/lexer/charsets.py` defines ASCII character classes, whitespace, delimiters, comment classes, and transition input sets.

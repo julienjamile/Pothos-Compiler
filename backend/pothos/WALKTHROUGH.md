@@ -26,16 +26,20 @@ complete program.
 
 | Input | Expected output | State function |
 |---|---|---|
-| `wharfa(x;` / `strina(x;` / `trua(x;` / `lis(x;` / `flo(x;` / `glossare(x;` | Each datatype keyword accepts `(` through `delim_datatype`; the scanner emits the keyword and then scans the parenthesis normally | TD1 accepting states 81, 125, 130, 142, 43, 52; `delim_datatype` |
+| `wharfa x;` / `strina x;` / `trua x;` / `lis x;` / `flo x;` / `glossare x;` | Each datatype word accepts a space through the revised `delim_datatype`; the following name is scanned separately | `_td1_reserved_words`; `delim_datatype` |
 | `flo x;` | `flo("flo")`, `id("x")`, `;(";")` | `_td1_reserved_words`, `_td2_reserved_symbols`, `_td3_identifiers` |
+| `swil (x) { cas 1: pas; defal: pas; }` | `swil`, `(`, `id("x")`, `)`, `{`, `cas`, `wharfa_lit("1")`, `:`, `pas`, `;`, `defal`, `:`, `pas`, `;`, `}` | `_td1_reserved_words` supplemental states 310–332 and the category-specific delimiter sets |
+| `repec { pas; } cycla (Trua);` | `repec`, block symbols, `pas`, `;`, `cycla`, condition tokens | `_td1_reserved_words`; `repec` currently uses `delim_block` |
+| `voia greet(){}` | `voia`, `id("greet")`, grouping and block symbols | `_td1_reserved_words`; `voia` uses `delim_void` |
 | `a b;` | `id("a")`, `space(" ")`, `id("b")`, `;(";")`; an identifier ending at EOF is an error because EOF is not in `delim_id` | `Lexer.run` emits whitespace tokens; `_td3_identifiers` checks `delim_id` |
 | `12.5;` | `flo_lit("12.5")`, `;(";")`; the serialized value is `12.5` | `_td4_integer_literals`, `_td2_reserved_symbols` |
 | `1.23456` | One `flo_lit` has normalized lexeme/value `1.2346`; digits after the fourth are consumed and rounded half up | `_td4_integer_literals` supplemental state 300; `_accept`; `token_to_dict` |
 | `000000` / `0.00000` | Lexemes normalize to `0` / `0.0`; float lexemes keep at least one fractional digit | `_accept` |
 | `abcdefghijklmnopqrstu;` | Error text is the first 20 characters; the outer loop sends the 21st (`u`) through state 0, where it is scanned as `id("u")`, followed by `;` | `_td3_identifiers` state 239 and overflow recovery |
-| `1+-2;` | `wharfa_lit("1")`, `+`, `-`, `wharfa_lit("2")`, `;`; `1--2` starts a line comment at `--` | `_td2_reserved_symbols`, numeric delimiters in `charsets.py` |
+| `1+-2;` | `wharfa_lit("1")`, `+`, `-`, `wharfa_lit("2")`, `;` | `_td2_reserved_symbols`, numeric delimiters in `charsets.py` |
 | `msg = "a\nb";` | `id("msg")`, `=("=")`, `strina_lit("\"a\\nb\"")`, `;(";")` | `_td2_reserved_symbols`, `_td3_identifiers`, `_td5_strings_comments` |
-| `/-- note`<br>`inside --/` | one `comment_ml` token containing both lines | `_td5_strings_comments` |
+| `msg = "{name: \\{name\\}}";` | A `strina_lit` containing escaped braces; `\\{` and `\\}` are accepted by the string escape states | `_td5_strings_comments`, `escape` in `charsets.py` |
+| `~ note`<br>`inside ~` | one `comment_ml` token containing both lines; a single-line tilde comment emits `comment_sl` | TD5 states 294–297; `delim_comments` |
 | `5.` | `flo_lit("5.0")`; the diagram accepts the point with no fractional digit and normalization supplies `.0` | `_td4_integer_literals`, `_accept` |
 | `123456789;` | Error text is `12345678`; the outer loop sends the excess `9` through state 0, where it is scanned as `wharfa_lit("9")`, followed by `;` | `_td4_integer_literals` state 257 and overflow recovery |
 | `"bad\x"` | lexical error at line 1, column 5: invalid escape `\x` | `_td5_strings_comments` |

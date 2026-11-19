@@ -1,0 +1,480 @@
+
+============================================================
+1. INTEGER AND FLOATING-POINT LITERALS
+============================================================
+
+START (0)
+  -- 0 --> 259
+  -- 170 --> 259
+
+State 259:
+  -- 0 --> 259                         [LOOP]
+  -- digit --> 261
+  -- delim_num --> 260                 [FINAL, RETRACK]
+
+State 261:
+  -- delim_num --> 262                 [FINAL, RETRACK]
+  -- numbers --> 263
+  -- . --> 277
+
+State 263:
+  -- delim_num --> 264                 [FINAL, RETRACK]
+  -- numbers --> 265
+  -- . --> 277
+
+State 265:
+  -- delim_num --> 266                 [FINAL, RETRACK]
+  -- numbers --> 267
+  -- . --> 277
+
+State 267:
+  -- delim_num --> 268                 [FINAL, RETRACK]
+  -- numbers --> 269
+  -- . --> 277
+
+State 269:
+  -- delim_num --> 270                 [FINAL, RETRACK]
+  -- numbers --> 271
+  -- . --> 277
+
+State 271:
+  -- delim_num --> 272                 [FINAL, RETRACK]
+  -- numbers --> 273
+  -- . --> 277
+
+State 273:
+  -- delim_num --> 274                 [FINAL, RETRACK]
+  -- numbers --> 275
+  -- . --> 277
+
+State 275:
+  -- delim_num --> 276                 [FINAL, RETRACK]
+  -- . --> 277
+
+State 277:
+  -- numbers --> 278
+
+State 278:
+  -- delim_num --> 279                 [FINAL, RETRACK]
+  -- numbers --> 280
+
+State 280:
+  -- delim_num --> 281                 [FINAL, RETRACK]
+  -- numbers --> 282
+
+State 282:
+  -- delim_num --> 283                 [FINAL, RETRACK]
+  -- numbers --> 284
+
+State 284:
+  -- 0 --> 284                         [LOOP]
+  -- delim_num --> 285                 [FINAL, RETRACK]
+
+
+============================================================
+2. RESERVED SYMBOLS
+============================================================
+
+START (0)
+
+-- ARITHMETIC AND ASSIGNMENT --
+
+  -- + --> 166
+       -- delim_arithmetic --> 167     [FINAL, RETRACK]
+       -- = --> 168
+            -- delim_equal --> 169     [FINAL, RETRACK]
+
+  -- - --> 170
+       -- delim_arithmetic --> 171     [FINAL, RETRACK]
+       -- = --> 172
+            -- delim_equal --> 173     [FINAL, RETRACK]
+
+  -- * --> 174
+       -- delim_arithmetic --> 175     [FINAL, RETRACK]
+       -- = --> 176
+            -- delim_equal --> 177     [FINAL, RETRACK]
+
+  -- / --> 178
+       -- delim_arithmetic --> 179     [FINAL, RETRACK]
+       -- = --> 180
+            -- delim_equal --> 181     [FINAL, RETRACK]
+
+  -- % --> 182
+       -- delim_arithmetic --> 183     [FINAL, RETRACK]
+       -- = --> 184
+            -- delim_equal --> 185     [FINAL, RETRACK]
+
+
+-- RELATIONAL AND EQUALITY --
+
+  -- < --> 186
+       -- delim_oper --> 187            [FINAL, RETRACK]
+       -- = --> 188
+            -- delim_equal --> 189     [FINAL, RETRACK]
+
+  -- > --> 190
+       -- delim_oper --> 191            [FINAL, RETRACK]
+       -- = --> 192
+            -- delim_equal --> 193     [FINAL, RETRACK]
+
+  -- = --> 194
+       -- delim_equal --> 195          [FINAL, RETRACK]
+       -- = --> 196
+            -- delim_equal --> 197     [FINAL, RETRACK]
+
+  -- ! --> 198
+       -- = --> 199
+            -- delim_equal --> 200     [FINAL, RETRACK]
+
+
+-- GROUPING AND OTHER SYMBOLS --
+
+  -- ( --> 201
+       -- delim_openparen --> 202      [FINAL, RETRACK]
+
+  -- ) --> 203
+       -- delim_closeparen --> 204     [FINAL, RETRACK]
+
+  -- [ --> 205
+       -- delim_openbracket --> 206    [FINAL, RETRACK]
+
+  -- ] --> 207
+       -- delim_closebracket --> 208   [FINAL, RETRACK]
+
+  -- { --> 209
+       -- delim_opencurly --> 210      [FINAL, RETRACK]
+
+  -- } --> 211
+       -- delim_closecurly --> 212     [FINAL, RETRACK]
+
+  -- , --> 213
+       -- delim_comma --> 214          [FINAL, RETRACK]
+
+  -- : --> 215
+       -- delim_colon --> 216          [FINAL, RETRACK]
+
+  -- ; --> 217
+       -- delim_semicolon --> 218       [FINAL, RETRACK]
+
+
+============================================================
+3. RESERVED WORDS
+============================================================
+
+START (0)
+
+an:
+  0 -- a --> 1 -- n --> 2
+  2 -- delim_logic --> 3              [FINAL, RETRACK]
+
+belial:
+  0 -- b --> 4 -- e --> 5 -- l --> 6
+  6 -- i --> 7 -- a --> 8 -- l --> 9
+  9 -- delim_if --> 10                [FINAL, RETRACK]
+
+beliasa:
+  0 -- b --> 4 -- e --> 5 -- l --> 6
+  6 -- s --> 11 -- a --> 12
+  12 -- delim_if --> 13               [FINAL, RETRACK]
+
+const:
+  0 -- c --> 14 -- o --> 15 -- n --> 16
+  16 -- s --> 17 -- t --> 18
+  18 -- delim_const --> 19            [FINAL, RETRACK]
+
+cycla:
+  0 -- c --> 14 -- y --> 20 -- c --> 21
+  21 -- l --> 22 -- a --> 23
+  23 -- delim_cyc --> 24              [FINAL, RETRACK]
+
+cas:
+  0 -- c --> 14 -- a --> 25 -- s --> 26
+  26 -- delim_case --> 27             [FINAL, RETRACK]
+
+deleo:
+  0 -- d --> 28 -- e --> 29 -- l --> 30
+  30 -- e --> 31 -- o --> 32
+  32 -- delim_deleo --> 33            [FINAL, RETRACK]
+
+defal:
+  0 -- d --> 28 -- e --> 29
+  29 -- f --> 34 -- a --> 35 -- l --> 36
+  36 -- delim_default --> 37          [FINAL, RETRACK]
+
+elsa:
+  0 -- e --> 38 -- l --> 39 -- s --> 40
+  40 -- a --> 41
+  41 -- delim_block --> 42            [FINAL, RETRACK]
+
+formo:
+  0 -- f --> 43 -- o --> 44 -- r --> 45
+  45 -- m --> 46 -- o --> 47
+  47 -- delim_io --> 48               [FINAL, RETRACK]
+
+flo:
+  0 -- f --> 43 -- l --> 49 -- o --> 50
+  50 -- delim_datatype --> 51         [FINAL, RETRACK]
+
+glossare:
+  0 -- g --> 52 -- l --> 53 -- o --> 54
+  54 -- s --> 55 -- s --> 56 -- a --> 57
+  57 -- r --> 58 -- e --> 59
+  59 -- delim_datatype --> 60         [FINAL, RETRACK]
+
+inflo:
+  0 -- i --> 61 -- n --> 62 -- f --> 63
+  63 -- l --> 64 -- o --> 65
+  65 -- delim_io --> 66               [FINAL, RETRACK]
+
+inpub:
+  0 -- i --> 61 -- n --> 62
+  62 -- p --> 67 -- u --> 68 -- b --> 69
+  69 -- delim_io --> 70               [FINAL, RETRACK]
+
+insub:
+  0 -- i --> 61 -- n --> 62
+  62 -- p --> 71 -- u --> 72 -- b --> 73
+  73 -- delim_io --> 74               [FINAL, RETRACK]
+
+insid:
+  0 -- i --> 61 -- n --> 62
+  62 -- s --> 75 -- i --> 76 -- d --> 77
+  77 -- delim_insid --> 78            [FINAL, RETRACK]
+
+linnaccu:
+  0 -- l --> 79 -- i --> 80 -- n --> 81
+  81 -- a --> 82 -- c --> 83 -- c --> 84
+  84 -- delim_bool --> 85             [FINAL, RETRACK]
+
+lis:
+  0 -- l --> 86 -- i --> 87 -- s --> 88
+  88 -- delim_datatype --> 89         [FINAL, RETRACK]
+
+lood:
+  0 -- l --> 86 -- o --> 90 -- o --> 91 -- d --> 92
+  92 -- delim_logic --> 93            [FINAL, RETRACK]
+
+neve:
+  0 -- n --> 94 -- e --> 95 -- v --> 96 -- e --> 97
+  97 -- delim_logic --> 98            [FINAL, RETRACK]
+
+othan:
+  0 -- o --> 99 -- t --> 100 -- h --> 101
+  101 -- a --> 102 -- n --> 103
+  103 -- delim_logic --> 104          [FINAL, RETRACK]
+
+prin:
+  0 -- p --> 105 -- r --> 118 -- i --> 119 -- n --> 120
+  120 -- delim_io --> 121             [FINAL, RETRACK]
+
+paus:
+  0 -- p --> 105 -- a --> 106 -- u --> 109 -- s --> 110
+  110 -- delim_stmt --> 111           [FINAL, RETRACK]
+
+persis:
+  0 -- p --> 105 -- e --> 112 -- r --> 113
+  113 -- s --> 114 -- i --> 115 -- s --> 116
+  116 -- delim_stmt --> 117           [FINAL, RETRACK]
+
+reor:
+  0 -- r --> 122 -- e --> 123 -- o --> 124 -- r --> 125
+  125 -- delim_struc --> 126          [FINAL, RETRACK]
+
+repec:
+  0 -- r --> 122 -- e --> 123
+  123 -- p --> 127 -- e --> 128 -- c --> 130
+  130 -- delim_block --> 131          [FINAL, RETRACK]
+
+strina:
+  0 -- s --> 132 -- t --> 133 -- r --> 134
+  134 -- i --> 135 -- n --> 136 -- a --> 137
+  137 -- delim_datatype --> 138       [FINAL, RETRACK]
+
+swil:
+  0 -- s --> 132 -- w --> 139 -- i --> 140 -- l --> 141
+  141 -- delim_logic --> 142          [FINAL, RETRACK]
+
+trula:
+  0 -- t --> 143 -- r --> 144 -- u --> 145
+  145 -- l --> 146 -- a --> 147
+  147 -- delim_datatype --> 148       [FINAL, RETRACK]
+
+Trua:
+  0 -- T --> 149 -- r --> 150 -- u --> 151 -- a --> 152
+  152 -- delim_bool --> 153           [FINAL, RETRACK]
+
+void:
+  0 -- v --> 154 -- o --> 155 -- i --> 156 -- d --> 157
+  157 -- delim_void --> 158           [FINAL, RETRACK]
+
+wharfa:
+  0 -- w --> 159 -- h --> 160 -- a --> 161
+  161 -- r --> 162 -- f --> 163 -- a --> 164
+  164 -- delim_datatype --> 165       [FINAL, RETRACK]
+
+
+============================================================
+4. STRINGS
+============================================================
+
+DOUBLE-QUOTED STRING:
+
+START (0)
+  -- " --> 286
+
+State 286:
+  -- str_chara --> 286               [LOOP]
+  -- " --> 287
+
+State 287:
+  -- delim_dqclose --> 288           [FINAL, RETRACK]
+
+ESCAPE SEQUENCES:
+
+State 286:
+  -- \ --> 289
+
+State 289:
+  -- n --> 286
+  -- \ --> 286
+  -- ' --> 286
+  -- " --> 286
+  -- t --> 286
+  -- 0 --> 286
+  -- } --> 286
+  -- { --> 286
+
+
+SINGLE-QUOTED STRING:
+
+START (0)
+  -- ' --> 290
+
+State 290:
+  -- str_charb --> 290               [LOOP]
+  -- ' --> 291
+
+State 291:
+  -- delim_sqclose --> 292           [FINAL, RETRACK]
+
+ESCAPE SEQUENCES:
+
+State 290:
+  -- \ --> 293
+
+State 293:
+  -- n --> 290
+  -- \ --> 290
+  -- ' --> 290
+  -- " --> 290
+  -- t --> 290
+  -- 0 --> 290
+  -- } --> 290
+  -- { --> 290
+
+
+============================================================
+5. COMMENTS
+============================================================
+
+START (0)
+  -- ~ --> 294
+
+State 294:
+  -- comment_char --> 294            [LOOP]
+  -- ~ --> 295
+  -- eof --> 297                     [FINAL, RETRACK]
+
+State 295:
+  -- delim_comments --> 296          [FINAL, RETRACK]
+
+
+============================================================
+6. IDENTIFIERS
+============================================================
+
+START (0)
+  -- letter --> 219
+
+State 219:
+  -- delim_id --> 220                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 221
+
+State 221:
+  -- delim_id --> 222                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 223
+
+State 223:
+  -- delim_id --> 224                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 225
+
+State 225:
+  -- delim_id --> 226                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 227
+
+State 227:
+  -- delim_id --> 228                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 229
+
+State 229:
+  -- delim_id --> 230                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 231
+
+State 231:
+  -- delim_id --> 232                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 233
+
+State 233:
+  -- delim_id --> 234                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 235
+
+State 235:
+  -- delim_id --> 236                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 237
+
+State 237:
+  -- delim_id --> 238                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 239
+
+State 239:
+  -- delim_id --> 240                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 241
+
+State 241:
+  -- delim_id --> 242                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 243
+
+State 243:
+  -- delim_id --> 244                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 245
+
+State 245:
+  -- delim_id --> 246                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 247
+
+State 247:
+  -- delim_id --> 248                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 249
+
+State 249:
+  -- delim_id --> 250                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 251
+
+State 251:
+  -- delim_id --> 252                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 253
+
+State 253:
+  -- delim_id --> 254                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 255
+
+State 255:
+  -- delim_id --> 256                [FINAL, RETRACK]
+  -- letters/numbers/_ --> 257
+
+State 257:
+  -- delim_id --> 258                [FINAL, RETRACK]
+
+============================================================
+END OF TRANSITION DIAGRAM TRANSCRIPTION
+============================================================

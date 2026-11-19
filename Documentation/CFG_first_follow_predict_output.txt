@@ -1,0 +1,418 @@
+RAMMAR CHECKS
+[OK] no undefined, unreachable, non-productive or left-recursive non-terminals; every terminal is a lexer token; no PREDICT conflicts
+LL(1) (unambiguous for a predictive parser): YES
+
+1	<program>	→	<declarations> <program_tail>
+2	<program>	→	<statements> <program_tail>
+3	<program>	→	<function_def> <program_tail>
+4	<program_tail>	→	<declarations> <program_tail>
+5	<program_tail>	→	<statements> <program_tail>
+6	<program_tail>	→	<function_def> <program_tail>
+7	<program_tail>	→	λ
+8	<declarations>	→	const id = <expr> ;
+9	<statements>	→	id <id_stmt>
+10	<statements>	→	<builtin_call> ;
+11	<statements>	→	reor <return_tail>
+12	<statements>	→	paus ;
+13	<statements>	→	persis ;
+14	<statements>	→	pas ;
+15	<statements>	→	deleo id ;
+16	<statements>	→	<if_stmt>
+17	<statements>	→	<swil_stmt>
+18	<statements>	→	<cycla_stmt>
+19	<statements>	→	<lood_stmt>
+20	<statements>	→	<repec_stmt>
+21	<repec_stmt>	→	repec <block> cycla ( <expr> ) ;
+22	<id_stmt>	→	( <args> ) ;
+23	<id_stmt>	→	<subscripts> <id_tail>
+24	<id_tail>	→	<assop> <expr> ;
+25	<id_tail>	→	, <target> <target_list> = <expr> <expr_list> ;
+26	<target>	→	id <subscripts>
+27	<target_list>	→	, <target> <target_list>
+28	<target_list>	→	λ
+29	<expr_list>	→	, <expr> <expr_list>
+30	<expr_list>	→	λ
+31	<subscripts>	→	[ <expr> ] <subscripts>
+32	<subscripts>	→	λ
+33	<assop>	→	=
+34	<assop>	→	+=
+35	<assop>	→	-=
+36	<assop>	→	*=
+37	<assop>	→	/=
+38	<assop>	→	%=
+39	<builtin_call>	→	prin ( <expr> )
+40	<builtin_call>	→	<builtin_value>
+41	<builtin_value>	→	inpub ( )
+42	<builtin_value>	→	innum ( )
+43	<builtin_value>	→	inflo ( )
+44	<function_def>	→	<ret_type> id ( <parameter> ) <block>
+45	<ret_type>	→	<dtype>
+46	<ret_type>	→	voia
+47	<parameter>	→	<param> <parameter_tail>
+48	<parameter>	→	λ
+49	<parameter_tail>	→	, <param> <parameter_tail>
+50	<parameter_tail>	→	λ
+51	<param>	→	<dtype> id
+52	<dtype>	→	<primitive_dtype>
+53	<dtype>	→	<collection_dtype>
+54	<collection_dtype>	→	lis
+55	<collection_dtype>	→	glossare
+56	<primitive_dtype>	→	wharfa
+57	<primitive_dtype>	→	strina
+58	<primitive_dtype>	→	flo
+59	<primitive_dtype>	→	truta
+60	<block>	→	{ <block_item> <block_items> }
+61	<block_item>	→	<declarations>
+62	<block_item>	→	<statements>
+63	<block_items>	→	<block_item> <block_items>
+64	<block_items>	→	λ
+65	<if_stmt>	→	belial ( <expr> ) <block> <belsa_list> <else_part>
+66	<belsa_list>	→	belsa ( <expr> ) <block> <belsa_list>
+67	<belsa_list>	→	λ
+68	<else_part>	→	elsa <block>
+69	<else_part>	→	λ
+70	<swil_stmt>	→	swil ( <expr> ) { <swil_body> }
+71	<swil_body>	→	<cas_clause> <cas_list> <default_part>
+72	<swil_body>	→	<default_clause>
+73	<cas_clause>	→	cas <expr> : <cas_body>
+74	<cas_list>	→	<cas_clause> <cas_list>
+75	<cas_list>	→	λ
+76	<default_part>	→	<default_clause>
+77	<default_part>	→	λ
+78	<default_clause>	→	defal : <cas_body>
+79	<cas_body>	→	<block_item> <block_items>
+80	<cycla_stmt>	→	cycla ( <expr> ) <block>
+81	<lood_stmt>	→	lood ( <init> ; <expr> ; <step> ) <block>
+82	<init>	→	id = <expr>
+83	<step>	→	id <assop> <expr>
+84	<expr>	→	<and_expr> <or_tail>
+85	<or_tail>	→	othan <and_expr> <or_tail>
+86	<or_tail>	→	λ
+87	<and_expr>	→	<eq_expr> <and_tail>
+88	<and_tail>	→	an <eq_expr> <and_tail>
+89	<and_tail>	→	λ
+90	<eq_expr>	→	<member_expr> <eq_tail>
+91	<eq_tail>	→	== <member_expr> <eq_tail>
+92	<eq_tail>	→	!= <member_expr> <eq_tail>
+93	<eq_tail>	→	λ
+94	<member_expr>	→	<rel_expr> <member_tail>
+95	<member_tail>	→	insid <rel_expr>
+96	<member_tail>	→	λ
+97	<rel_expr>	→	<add_expr> <rel_tail>
+98	<rel_tail>	→	< <add_expr> <rel_tail>
+99	<rel_tail>	→	<= <add_expr> <rel_tail>
+100	<rel_tail>	→	> <add_expr> <rel_tail>
+101	<rel_tail>	→	>= <add_expr> <rel_tail>
+102	<rel_tail>	→	λ
+103	<add_expr>	→	<mul_expr> <add_tail>
+104	<add_tail>	→	+ <mul_expr> <add_tail>
+105	<add_tail>	→	- <mul_expr> <add_tail>
+106	<add_tail>	→	λ
+107	<mul_expr>	→	<unary_expr> <mul_tail>
+108	<mul_tail>	→	* <unary_expr> <mul_tail>
+109	<mul_tail>	→	/ <unary_expr> <mul_tail>
+110	<mul_tail>	→	% <unary_expr> <mul_tail>
+111	<mul_tail>	→	λ
+112	<unary_expr>	→	- <unary_expr>
+113	<unary_expr>	→	neve <unary_expr>
+114	<unary_expr>	→	<postfix_expr>
+115	<postfix_expr>	→	<primary> <subscripts>
+116	<primary>	→	id <call_tail>
+117	<primary>	→	( <expr> )
+118	<primary>	→	<builtin_value>
+119	<primary>	→	<literal>
+120	<call_tail>	→	( <args> )
+121	<call_tail>	→	λ
+122	<args>	→	<expr> <args_tail>
+123	<args>	→	λ
+124	<args_tail>	→	, <expr> <args_tail>
+125	<args_tail>	→	λ
+126	<builtin_value>	→	formo ( strina_lit )
+127	<literal>	→	wharfa_lit
+128	<literal>	→	flo_lit
+129	<literal>	→	strina_lit
+130	<literal>	→	Trua
+131	<literal>	→	Inaccu
+132	<literal>	→	<lis_literal>
+133	<literal>	→	<glossare_literal>
+134	<lis_literal>	→	[ <expr> <expr_list> ]
+135	<glossare_literal>	→	{ <entry> <entry_list> }
+136	<entry>	→	strina_lit : <expr>
+137	<entry_list>	→	, <entry> <entry_list>
+138	<entry_list>	→	λ
+139	<return_tail>	→	<expr> ;
+140	<return_tail>	→	;
+
+
+FIRST SETS (ordered by first production ID)
+FIRST(R1, <program>) = { 'belial', 'const', 'cycla', 'deleo', 'flo', 'formo', 'glossare','id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa' }
+FIRST(R4, <program_tail>) = { 'belial', 'const', 'cycla', 'deleo', 'flo', 'formo', 'glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa', 'λ' }
+FIRST(R8, <declarations>) = { 'const' }
+FIRST(R9, <statements>) = { 'belial', 'cycla', 'deleo', 'formo', 'id', 'inflo', 'innum', 'inpub', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'swil' }
+FIRST(R21, <repec_stmt>) = { 'repec' }
+FIRST(R22, <id_stmt>) = { '%=', '(', '*=', '+=', ',', '-=', '/=', '=', '[' }
+FIRST(R24, <id_tail>) = { '%=', '*=', '+=', ',', '-=', '/=', '=' }
+FIRST(R26, <target>) = { 'id' }
+FIRST(R27, <target_list>) = { ',', 'λ' }
+FIRST(R29, <expr_list>) = { ',', 'λ' }
+FIRST(R31, <subscripts>) = { '[', 'λ' }
+FIRST(R33, <assop>) = { '%=', '*=', '+=', '-=', '/=', '=' }
+FIRST(R39, <builtin_call>) = { 'formo', 'inflo', 'innum', 'inpub', 'prin' }
+FIRST(R41, <builtin_value>) = { 'formo', 'inflo', 'innum', 'inpub' }
+FIRST(R44, <function_def>) = { 'flo', 'glossare', 'lis', 'strina', 'truta', 'voia', 'wharfa' }
+FIRST(R45, <ret_type>) = { 'flo', 'glossare', 'lis', 'strina', 'truta', 'voia', 'wharfa' }FIRST(R47, <parameter>) = { 'flo', 'glossare', 'lis', 'strina', 'truta', 'wharfa', 'λ' }
+FIRST(R49, <parameter_tail>) = { ',', 'λ' }
+FIRST(R51, <param>) = { 'flo', 'glossare', 'lis', 'strina', 'truta', 'wharfa' }
+FIRST(R52, <dtype>) = { 'flo', 'glossare', 'lis', 'strina', 'truta', 'wharfa' }
+FIRST(R54, <collection_dtype>) = { 'glossare', 'lis' }
+FIRST(R56, <primitive_dtype>) = { 'flo', 'strina', 'truta', 'wharfa' }
+FIRST(R60, <block>) = { '{' }
+FIRST(R61, <block_item>) = { 'belial', 'const', 'cycla', 'deleo', 'formo', 'id', 'inflo','innum', 'inpub', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'swil' }
+FIRST(R63, <block_items>) = { 'belial', 'const', 'cycla', 'deleo', 'formo', 'id', 'inflo', 'innum', 'inpub', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'swil', 'λ' }FIRST(R65, <if_stmt>) = { 'belial' }
+FIRST(R66, <belsa_list>) = { 'belsa', 'λ' }
+FIRST(R68, <else_part>) = { 'elsa', 'λ' }
+FIRST(R70, <swil_stmt>) = { 'swil' }
+FIRST(R71, <swil_body>) = { 'cas', 'defal' }
+FIRST(R73, <cas_clause>) = { 'cas' }
+FIRST(R74, <cas_list>) = { 'cas', 'λ' }
+FIRST(R76, <default_part>) = { 'defal', 'λ' }
+FIRST(R78, <default_clause>) = { 'defal' }
+FIRST(R79, <cas_body>) = { 'belial', 'const', 'cycla', 'deleo', 'formo', 'id', 'inflo', 'innum', 'inpub', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'swil' }
+FIRST(R80, <cycla_stmt>) = { 'cycla' }
+FIRST(R81, <lood_stmt>) = { 'lood' }
+FIRST(R82, <init>) = { 'id' }
+FIRST(R83, <step>) = { 'id' }
+FIRST(R84, <expr>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+FIRST(R85, <or_tail>) = { 'othan', 'λ' }
+FIRST(R87, <and_expr>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+FIRST(R88, <and_tail>) = { 'an', 'λ' }
+FIRST(R90, <eq_expr>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+FIRST(R91, <eq_tail>) = { '!=', '==', 'λ' }
+FIRST(R94, <member_expr>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+FIRST(R95, <member_tail>) = { 'insid', 'λ' }
+FIRST(R97, <rel_expr>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+FIRST(R98, <rel_tail>) = { '<', '<=', '>', '>=', 'λ' }
+FIRST(R103, <add_expr>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+FIRST(R104, <add_tail>) = { '+', '-', 'λ' }
+FIRST(R107, <mul_expr>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+FIRST(R108, <mul_tail>) = { '%', '*', '/', 'λ' }
+FIRST(R112, <unary_expr>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+FIRST(R115, <postfix_expr>) = { '(', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'strina_lit', 'wharfa_lit', '{' }
+FIRST(R116, <primary>) = { '(', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo','innum', 'inpub', 'strina_lit', 'wharfa_lit', '{' }
+FIRST(R120, <call_tail>) = { '(', 'λ' }
+FIRST(R122, <args>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{', 'λ' }
+FIRST(R124, <args_tail>) = { ',', 'λ' }
+FIRST(R127, <literal>) = { 'Inaccu', 'Trua', '[', 'flo_lit', 'strina_lit', 'wharfa_lit', '{' }
+FIRST(R134, <lis_literal>) = { '[' }
+FIRST(R135, <glossare_literal>) = { '{' }
+FIRST(R136, <entry>) = { 'strina_lit' }
+FIRST(R137, <entry_list>) = { ',', 'λ' }
+FIRST(R139, <return_tail>) = { '(', '-', ';', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+
+FOLLOW SETS (ordered by first production ID)
+FOLLOW(R1, <program>) = { '$' }
+FOLLOW(R4, <program_tail>) = { '$' }
+FOLLOW(R8, <declarations>) = { '$', 'belial', 'cas', 'const', 'cycla', 'defal', 'deleo', 'flo', 'formo', 'glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus','persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa', '}' }
+FOLLOW(R9, <statements>) = { '$', 'belial', 'cas', 'const', 'cycla', 'defal', 'deleo', 'flo', 'formo', 'glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa', '}' }
+FOLLOW(R21, <repec_stmt>) = { '$', 'belial', 'cas', 'const', 'cycla', 'defal', 'deleo', 'flo', 'formo', 'glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa', '}' }
+FOLLOW(R22, <id_stmt>) = { '$', 'belial', 'cas', 'const', 'cycla', 'defal', 'deleo', 'flo', 'formo', 'glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa', '}' }
+FOLLOW(R24, <id_tail>) = { '$', 'belial', 'cas', 'const', 'cycla', 'defal', 'deleo', 'flo', 'formo', 'glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa', '}' }
+FOLLOW(R26, <target>) = { ',', '=' }
+FOLLOW(R27, <target_list>) = { '=' }
+FOLLOW(R29, <expr_list>) = { ';', ']' }
+FOLLOW(R31, <subscripts>) = { '!=', '%', '%=', ')', '*', '*=', '+', '+=', ',', '-', '-=','/', '/=', ':', ';', '<', '<=', '=', '==', '>', '>=', ']', 'an', 'insid', 'othan', '}' }
+FOLLOW(R33, <assop>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+FOLLOW(R39, <builtin_call>) = { ';' }
+FOLLOW(R41, <builtin_value>) = { '!=', '%', ')', '*', '+', ',', '-', '/', ':', ';', '<', '<=', '==', '>', '>=', '[', ']', 'an', 'insid', 'othan', '}' }
+FOLLOW(R44, <function_def>) = { '$', 'belial', 'const', 'cycla', 'deleo', 'flo', 'formo','glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa' }
+FOLLOW(R45, <ret_type>) = { 'id' }
+FOLLOW(R47, <parameter>) = { ')' }
+FOLLOW(R49, <parameter_tail>) = { ')' }
+FOLLOW(R51, <param>) = { ')', ',' }
+FOLLOW(R52, <dtype>) = { 'id' }
+FOLLOW(R54, <collection_dtype>) = { 'id' }
+FOLLOW(R56, <primitive_dtype>) = { 'id' }
+FOLLOW(R60, <block>) = { '$', 'belial', 'belsa', 'cas', 'const', 'cycla', 'defal', 'deleo', 'elsa', 'flo', 'formo', 'glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa', '}' }
+FOLLOW(R61, <block_item>) = { 'belial', 'cas', 'const', 'cycla', 'defal', 'deleo', 'formo', 'id', 'inflo', 'innum', 'inpub', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'swil', '}' }
+FOLLOW(R63, <block_items>) = { 'cas', 'defal', '}' }
+FOLLOW(R65, <if_stmt>) = { '$', 'belial', 'cas', 'const', 'cycla', 'defal', 'deleo', 'flo', 'formo', 'glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa', '}' }
+FOLLOW(R66, <belsa_list>) = { '$', 'belial', 'cas', 'const', 'cycla', 'defal', 'deleo', 'elsa', 'flo', 'formo', 'glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa', '}' }
+FOLLOW(R68, <else_part>) = { '$', 'belial', 'cas', 'const', 'cycla', 'defal', 'deleo', 'flo', 'formo', 'glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa', '}' }
+FOLLOW(R70, <swil_stmt>) = { '$', 'belial', 'cas', 'const', 'cycla', 'defal', 'deleo', 'flo', 'formo', 'glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa', '}' }
+FOLLOW(R71, <swil_body>) = { '}' }
+FOLLOW(R73, <cas_clause>) = { 'cas', 'defal', '}' }
+FOLLOW(R74, <cas_list>) = { 'defal', '}' }
+FOLLOW(R76, <default_part>) = { '}' }
+FOLLOW(R78, <default_clause>) = { '}' }
+FOLLOW(R79, <cas_body>) = { 'cas', 'defal', '}' }
+FOLLOW(R80, <cycla_stmt>) = { '$', 'belial', 'cas', 'const', 'cycla', 'defal', 'deleo', 'flo', 'formo', 'glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa', '}' }
+FOLLOW(R81, <lood_stmt>) = { '$', 'belial', 'cas', 'const', 'cycla', 'defal', 'deleo', 'flo', 'formo', 'glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa', '}' }
+FOLLOW(R82, <init>) = { ';' }
+FOLLOW(R83, <step>) = { ')' }
+FOLLOW(R84, <expr>) = { ')', ',', ':', ';', ']', '}' }
+FOLLOW(R85, <or_tail>) = { ')', ',', ':', ';', ']', '}' }
+FOLLOW(R87, <and_expr>) = { ')', ',', ':', ';', ']', 'othan', '}' }
+FOLLOW(R88, <and_tail>) = { ')', ',', ':', ';', ']', 'othan', '}' }
+FOLLOW(R90, <eq_expr>) = { ')', ',', ':', ';', ']', 'an', 'othan', '}' }
+FOLLOW(R91, <eq_tail>) = { ')', ',', ':', ';', ']', 'an', 'othan', '}' }
+FOLLOW(R94, <member_expr>) = { '!=', ')', ',', ':', ';', '==', ']', 'an', 'othan', '}' }
+FOLLOW(R95, <member_tail>) = { '!=', ')', ',', ':', ';', '==', ']', 'an', 'othan', '}' }
+FOLLOW(R97, <rel_expr>) = { '!=', ')', ',', ':', ';', '==', ']', 'an', 'insid', 'othan', '}' }
+FOLLOW(R98, <rel_tail>) = { '!=', ')', ',', ':', ';', '==', ']', 'an', 'insid', 'othan', '}' }
+FOLLOW(R103, <add_expr>) = { '!=', ')', ',', ':', ';', '<', '<=', '==', '>', '>=', ']', 'an', 'insid', 'othan', '}' }
+FOLLOW(R104, <add_tail>) = { '!=', ')', ',', ':', ';', '<', '<=', '==', '>', '>=', ']', 'an', 'insid', 'othan', '}' }
+FOLLOW(R107, <mul_expr>) = { '!=', ')', '+', ',', '-', ':', ';', '<', '<=', '==', '>', '>=', ']', 'an', 'insid', 'othan', '}' }
+FOLLOW(R108, <mul_tail>) = { '!=', ')', '+', ',', '-', ':', ';', '<', '<=', '==', '>', '>=', ']', 'an', 'insid', 'othan', '}' }
+FOLLOW(R112, <unary_expr>) = { '!=', '%', ')', '*', '+', ',', '-', '/', ':', ';', '<', '<=', '==', '>', '>=', ']', 'an', 'insid', 'othan', '}' }
+FOLLOW(R115, <postfix_expr>) = { '!=', '%', ')', '*', '+', ',', '-', '/', ':', ';', '<', '<=', '==', '>', '>=', ']', 'an', 'insid', 'othan', '}' }
+FOLLOW(R116, <primary>) = { '!=', '%', ')', '*', '+', ',', '-', '/', ':', ';', '<', '<=','==', '>', '>=', '[', ']', 'an', 'insid', 'othan', '}' }
+FOLLOW(R120, <call_tail>) = { '!=', '%', ')', '*', '+', ',', '-', '/', ':', ';', '<', '<=', '==', '>', '>=', '[', ']', 'an', 'insid', 'othan', '}' }
+FOLLOW(R122, <args>) = { ')' }
+FOLLOW(R124, <args_tail>) = { ')' }
+FOLLOW(R127, <literal>) = { '!=', '%', ')', '*', '+', ',', '-', '/', ':', ';', '<', '<=','==', '>', '>=', '[', ']', 'an', 'insid', 'othan', '}' }
+FOLLOW(R134, <lis_literal>) = { '!=', '%', ')', '*', '+', ',', '-', '/', ':', ';', '<', '<=', '==', '>', '>=', '[', ']', 'an', 'insid', 'othan', '}' }
+FOLLOW(R135, <glossare_literal>) = { '!=', '%', ')', '*', '+', ',', '-', '/', ':', ';', '<', '<=', '==', '>', '>=', '[', ']', 'an', 'insid', 'othan', '}' }
+FOLLOW(R136, <entry>) = { ',', '}' }
+FOLLOW(R137, <entry_list>) = { '}' }
+FOLLOW(R139, <return_tail>) = { '$', 'belial', 'cas', 'const', 'cycla', 'defal', 'deleo','flo', 'formo', 'glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa', '}' }
+
+PREDICT SETS (ordered by production ID)
+PREDICT(R1: <program> -> <declarations> <program_tail>) = { 'const' }
+PREDICT(R2: <program> -> <statements> <program_tail>) = { 'belial', 'cycla', 'deleo', 'formo', 'id', 'inflo', 'innum', 'inpub', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'swil' }
+PREDICT(R3: <program> -> <function_def> <program_tail>) = { 'flo', 'glossare', 'lis', 'strina', 'truta', 'voia', 'wharfa' }
+PREDICT(R4: <program_tail> -> <declarations> <program_tail>) = { 'const' }
+PREDICT(R5: <program_tail> -> <statements> <program_tail>) = { 'belial', 'cycla', 'deleo', 'formo', 'id', 'inflo', 'innum', 'inpub', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'swil' }
+PREDICT(R6: <program_tail> -> <function_def> <program_tail>) = { 'flo', 'glossare', 'lis', 'strina', 'truta', 'voia', 'wharfa' }
+PREDICT(R7: <program_tail> -> λ) = { '$' }
+PREDICT(R8: <declarations> -> const id = <expr> ;) = { 'const' }
+PREDICT(R9: <statements> -> id <id_stmt>) = { 'id' }
+PREDICT(R10: <statements> -> <builtin_call> ;) = { 'formo', 'inflo', 'innum', 'inpub', 'prin' }
+PREDICT(R11: <statements> -> reor <return_tail>) = { 'reor' }
+PREDICT(R12: <statements> -> paus ;) = { 'paus' }
+PREDICT(R13: <statements> -> persis ;) = { 'persis' }
+PREDICT(R14: <statements> -> pas ;) = { 'pas' }
+PREDICT(R15: <statements> -> deleo id ;) = { 'deleo' }
+PREDICT(R16: <statements> -> <if_stmt>) = { 'belial' }
+PREDICT(R17: <statements> -> <swil_stmt>) = { 'swil' }
+PREDICT(R18: <statements> -> <cycla_stmt>) = { 'cycla' }
+PREDICT(R19: <statements> -> <lood_stmt>) = { 'lood' }
+PREDICT(R20: <statements> -> <repec_stmt>) = { 'repec' }
+PREDICT(R21: <repec_stmt> -> repec <block> cycla ( <expr> ) ;) = { 'repec' }
+PREDICT(R22: <id_stmt> -> ( <args> ) ;) = { '(' }
+PREDICT(R23: <id_stmt> -> <subscripts> <id_tail>) = { '%=', '*=', '+=', ',', '-=', '/=', '=', '[' }
+PREDICT(R24: <id_tail> -> <assop> <expr> ;) = { '%=', '*=', '+=', '-=', '/=', '=' }
+PREDICT(R25: <id_tail> -> , <target> <target_list> = <expr> <expr_list> ;) = { ',' }
+PREDICT(R26: <target> -> id <subscripts>) = { 'id' }
+PREDICT(R27: <target_list> -> , <target> <target_list>) = { ',' }
+PREDICT(R28: <target_list> -> λ) = { '=' }
+PREDICT(R29: <expr_list> -> , <expr> <expr_list>) = { ',' }
+PREDICT(R30: <expr_list> -> λ) = { ';', ']' }
+PREDICT(R31: <subscripts> -> [ <expr> ] <subscripts>) = { '[' }
+PREDICT(R32: <subscripts> -> λ) = { '!=', '%', '%=', ')', '*', '*=', '+', '+=', ',', '-','-=', '/', '/=', ':', ';', '<', '<=', '=', '==', '>', '>=', ']', 'an', 'insid', 'othan', '}' }
+PREDICT(R33: <assop> -> =) = { '=' }
+PREDICT(R34: <assop> -> +=) = { '+=' }
+PREDICT(R35: <assop> -> -=) = { '-=' }
+PREDICT(R36: <assop> -> *=) = { '*=' }
+PREDICT(R37: <assop> -> /=) = { '/=' }
+PREDICT(R38: <assop> -> %=) = { '%=' }
+PREDICT(R39: <builtin_call> -> prin ( <expr> )) = { 'prin' }
+PREDICT(R40: <builtin_call> -> <builtin_value>) = { 'formo', 'inflo', 'innum', 'inpub' }
+PREDICT(R41: <builtin_value> -> inpub ( )) = { 'inpub' }
+PREDICT(R42: <builtin_value> -> innum ( )) = { 'innum' }
+PREDICT(R43: <builtin_value> -> inflo ( )) = { 'inflo' }
+PREDICT(R44: <function_def> -> <ret_type> id ( <parameter> ) <block>) = { 'flo', 'glossare', 'lis', 'strina', 'truta', 'voia', 'wharfa' }
+PREDICT(R45: <ret_type> -> <dtype>) = { 'flo', 'glossare', 'lis', 'strina', 'truta', 'wharfa' }
+PREDICT(R46: <ret_type> -> voia) = { 'voia' }
+PREDICT(R47: <parameter> -> <param> <parameter_tail>) = { 'flo', 'glossare', 'lis', 'strina', 'truta', 'wharfa' }
+PREDICT(R48: <parameter> -> λ) = { ')' }
+PREDICT(R49: <parameter_tail> -> , <param> <parameter_tail>) = { ',' }
+PREDICT(R50: <parameter_tail> -> λ) = { ')' }
+PREDICT(R51: <param> -> <dtype> id) = { 'flo', 'glossare', 'lis', 'strina', 'truta', 'wharfa' }
+PREDICT(R52: <dtype> -> <primitive_dtype>) = { 'flo', 'strina', 'truta', 'wharfa' }
+PREDICT(R53: <dtype> -> <collection_dtype>) = { 'glossare', 'lis' }
+PREDICT(R54: <collection_dtype> -> lis) = { 'lis' }
+PREDICT(R55: <collection_dtype> -> glossare) = { 'glossare' }
+PREDICT(R56: <primitive_dtype> -> wharfa) = { 'wharfa' }
+PREDICT(R57: <primitive_dtype> -> strina) = { 'strina' }
+PREDICT(R58: <primitive_dtype> -> flo) = { 'flo' }
+PREDICT(R59: <primitive_dtype> -> truta) = { 'truta' }
+PREDICT(R60: <block> -> { <block_item> <block_items> }) = { '{' }
+PREDICT(R61: <block_item> -> <declarations>) = { 'const' }
+PREDICT(R62: <block_item> -> <statements>) = { 'belial', 'cycla', 'deleo', 'formo', 'id','inflo', 'innum', 'inpub', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'swil' }
+PREDICT(R63: <block_items> -> <block_item> <block_items>) = { 'belial', 'const', 'cycla','deleo', 'formo', 'id', 'inflo', 'innum', 'inpub', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'swil' }
+PREDICT(R64: <block_items> -> λ) = { 'cas', 'defal', '}' }
+PREDICT(R65: <if_stmt> -> belial ( <expr> ) <block> <belsa_list> <else_part>) = { 'belial' }
+PREDICT(R66: <belsa_list> -> belsa ( <expr> ) <block> <belsa_list>) = { 'belsa' }
+PREDICT(R67: <belsa_list> -> λ) = { '$', 'belial', 'cas', 'const', 'cycla', 'defal', 'deleo', 'elsa', 'flo', 'formo', 'glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa', '}' }
+PREDICT(R68: <else_part> -> elsa <block>) = { 'elsa' }
+PREDICT(R69: <else_part> -> λ) = { '$', 'belial', 'cas', 'const', 'cycla', 'defal', 'deleo', 'flo', 'formo', 'glossare', 'id', 'inflo', 'innum', 'inpub', 'lis', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'strina', 'swil', 'truta', 'voia', 'wharfa', '}' }
+PREDICT(R70: <swil_stmt> -> swil ( <expr> ) { <swil_body> }) = { 'swil' }
+PREDICT(R71: <swil_body> -> <cas_clause> <cas_list> <default_part>) = { 'cas' }
+PREDICT(R72: <swil_body> -> <default_clause>) = { 'defal' }
+PREDICT(R73: <cas_clause> -> cas <expr> : <cas_body>) = { 'cas' }
+PREDICT(R74: <cas_list> -> <cas_clause> <cas_list>) = { 'cas' }
+PREDICT(R75: <cas_list> -> λ) = { 'defal', '}' }
+PREDICT(R76: <default_part> -> <default_clause>) = { 'defal' }
+PREDICT(R77: <default_part> -> λ) = { '}' }
+PREDICT(R78: <default_clause> -> defal : <cas_body>) = { 'defal' }
+PREDICT(R79: <cas_body> -> <block_item> <block_items>) = { 'belial', 'const', 'cycla', 'deleo', 'formo', 'id', 'inflo', 'innum', 'inpub', 'lood', 'pas', 'paus', 'persis', 'prin', 'reor', 'repec', 'swil' }
+PREDICT(R80: <cycla_stmt> -> cycla ( <expr> ) <block>) = { 'cycla' }
+PREDICT(R81: <lood_stmt> -> lood ( <init> ; <expr> ; <step> ) <block>) = { 'lood' }
+PREDICT(R82: <init> -> id = <expr>) = { 'id' }
+PREDICT(R83: <step> -> id <assop> <expr>) = { 'id' }
+PREDICT(R84: <expr> -> <and_expr> <or_tail>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+PREDICT(R85: <or_tail> -> othan <and_expr> <or_tail>) = { 'othan' }
+PREDICT(R86: <or_tail> -> λ) = { ')', ',', ':', ';', ']', '}' }
+PREDICT(R87: <and_expr> -> <eq_expr> <and_tail>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }PREDICT(R88: <and_tail> -> an <eq_expr> <and_tail>) = { 'an' }
+PREDICT(R89: <and_tail> -> λ) = { ')', ',', ':', ';', ']', 'othan', '}' }
+PREDICT(R90: <eq_expr> -> <member_expr> <eq_tail>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+PREDICT(R91: <eq_tail> -> == <member_expr> <eq_tail>) = { '==' }
+PREDICT(R92: <eq_tail> -> != <member_expr> <eq_tail>) = { '!=' }
+PREDICT(R93: <eq_tail> -> λ) = { ')', ',', ':', ';', ']', 'an', 'othan', '}' }
+PREDICT(R94: <member_expr> -> <rel_expr> <member_tail>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+PREDICT(R95: <member_tail> -> insid <rel_expr>) = { 'insid' }
+PREDICT(R96: <member_tail> -> λ) = { '!=', ')', ',', ':', ';', '==', ']', 'an', 'othan', '}' }
+PREDICT(R97: <rel_expr> -> <add_expr> <rel_tail>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{'}
+PREDICT(R98: <rel_tail> -> < <add_expr> <rel_tail>) = { '<' }
+PREDICT(R99: <rel_tail> -> <= <add_expr> <rel_tail>) = { '<=' }
+PREDICT(R100: <rel_tail> -> > <add_expr> <rel_tail>) = { '>' }
+PREDICT(R101: <rel_tail> -> >= <add_expr> <rel_tail>) = { '>=' }
+PREDICT(R102: <rel_tail> -> λ) = { '!=', ')', ',', ':', ';', '==', ']', 'an', 'insid', 'othan', '}' }
+PREDICT(R103: <add_expr> -> <mul_expr> <add_tail>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+PREDICT(R104: <add_tail> -> + <mul_expr> <add_tail>) = { '+' }
+PREDICT(R105: <add_tail> -> - <mul_expr> <add_tail>) = { '-' }
+PREDICT(R106: <add_tail> -> λ) = { '!=', ')', ',', ':', ';', '<', '<=', '==', '>', '>=', ']', 'an', 'insid', 'othan', '}' }
+PREDICT(R107: <mul_expr> -> <unary_expr> <mul_tail>) = { '(', '-', 'Inaccu', 'Trua', '[','flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+PREDICT(R108: <mul_tail> -> * <unary_expr> <mul_tail>) = { '*' }
+PREDICT(R109: <mul_tail> -> / <unary_expr> <mul_tail>) = { '/' }
+PREDICT(R110: <mul_tail> -> % <unary_expr> <mul_tail>) = { '%' }
+PREDICT(R111: <mul_tail> -> λ) = { '!=', ')', '+', ',', '-', ':', ';', '<', '<=', '==', '>', '>=', ']', 'an', 'insid', 'othan', '}' }
+PREDICT(R112: <unary_expr> -> - <unary_expr>) = { '-' }
+PREDICT(R113: <unary_expr> -> neve <unary_expr>) = { 'neve' }
+PREDICT(R114: <unary_expr> -> <postfix_expr>) = { '(', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'strina_lit', 'wharfa_lit', '{' }
+PREDICT(R115: <postfix_expr> -> <primary> <subscripts>) = { '(', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'strina_lit', 'wharfa_lit', '{' }
+PREDICT(R116: <primary> -> id <call_tail>) = { 'id' }
+PREDICT(R117: <primary> -> ( <expr> )) = { '(' }
+PREDICT(R118: <primary> -> <builtin_value>) = { 'formo', 'inflo', 'innum', 'inpub' }
+PREDICT(R119: <primary> -> <literal>) = { 'Inaccu', 'Trua', '[', 'flo_lit', 'strina_lit','wharfa_lit', '{' }
+PREDICT(R120: <call_tail> -> ( <args> )) = { '(' }
+PREDICT(R121: <call_tail> -> λ) = { '!=', '%', ')', '*', '+', ',', '-', '/', ':', ';', '<', '<=', '==', '>', '>=', '[', ']', 'an', 'insid', 'othan', '}' }
+PREDICT(R122: <args> -> <expr> <args_tail>) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+PREDICT(R123: <args> -> λ) = { ')' }
+PREDICT(R124: <args_tail> -> , <expr> <args_tail>) = { ',' }
+PREDICT(R125: <args_tail> -> λ) = { ')' }
+PREDICT(R126: <builtin_value> -> formo ( strina_lit )) = { 'formo' }
+PREDICT(R127: <literal> -> wharfa_lit) = { 'wharfa_lit' }
+PREDICT(R128: <literal> -> flo_lit) = { 'flo_lit' }
+PREDICT(R129: <literal> -> strina_lit) = { 'strina_lit' }
+PREDICT(R130: <literal> -> Trua) = { 'Trua' }
+PREDICT(R131: <literal> -> Inaccu) = { 'Inaccu' }
+PREDICT(R132: <literal> -> <lis_literal>) = { '[' }
+PREDICT(R133: <literal> -> <glossare_literal>) = { '{' }
+PREDICT(R134: <lis_literal> -> [ <expr> <expr_list> ]) = { '[' }
+PREDICT(R135: <glossare_literal> -> { <entry> <entry_list> }) = { '{' }
+PREDICT(R136: <entry> -> strina_lit : <expr>) = { 'strina_lit' }
+PREDICT(R137: <entry_list> -> , <entry> <entry_list>) = { ',' }
+PREDICT(R138: <entry_list> -> λ) = { '}' }
+PREDICT(R139: <return_tail> -> <expr> ;) = { '(', '-', 'Inaccu', 'Trua', '[', 'flo_lit', 'formo', 'id', 'inflo', 'innum', 'inpub', 'neve', 'strina_lit', 'wharfa_lit', '{' }
+PREDICT(R140: <return_tail> -> ;) = { ';' }

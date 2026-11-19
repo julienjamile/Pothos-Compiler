@@ -2,9 +2,10 @@
 
 The lexical analyzer for **Pothos** (BSCS 3-2 Group 3, PLM: Automata Theory & Formal Languages).
 
-It is a hand-written state machine in plain Python 3 (standard library only). Every
-`state` number in the code is the state number in our transition diagrams TD1–TD5,
-so you can follow the code on the diagrams line by line.
+It is a hand-written state machine in plain Python 3 (standard library only).
+Existing TD1–TD5 paths retain their current state numbers. The five words added
+from the 2026-11-20 revision use supplemental TD1 states 310–332; state-number
+reconciliation with the revised diagrams is tracked in the root `LEXER_AUDIT.md`.
 
 ## Structure
 
@@ -27,6 +28,15 @@ pothos/
 ```
 
 Pothos source files use the **`.pths`** extension.
+
+## Sample programs
+
+The `samples/` folder contains the compact `sample.pths` walkthrough, the
+reserved-word inventory `valid.pth`, the legacy error collection, and five
+focused lexer examples documented in `samples/README.md`. They cover the
+revised words, delimiters, operators, literals, escapes, comments, whitespace,
+and representative lexical errors. These examples illustrate lexer behavior;
+they are not parser acceptance tests.
 
 ## Requirements
 
@@ -81,11 +91,16 @@ tokens, errors = tokenize(source, skip_comments=True)    # drop comment tokens
 
 * `Token` fields: `type`, normalized `lexeme`, `line`, `column` (1-based), and optional numeric `value`. Integer lexemes remove leading zeroes (`00012` becomes `12`; all zeroes become `0`). Float lexemes retain at most four fractional places, round excess precision half up, and trim trailing fractional zeroes while retaining one digit (`1.2300` becomes `1.23`; `0.0000` becomes `0.0`).
 * Token types: a reserved word or symbol is its own type (`belial`, `wharfa`, `==`, `;` …).
+  Revised control-flow words include `swil`, `cas`, `defal`, and `repec`; `voia`
+  is the revised void return-type word. The image uses `trua`; the text list's
+  `truta` spelling remains unresolved and is not currently recognized.
   Literals are `id`, `wharfa_lit`, `strina_lit`, `trua_lit` (`Trua` / `Inaccu`).
   Each recognized source space, tab, and newline is also emitted as `space`, `tab`,
   or `newline`. The frontend preserves a literal blank in the `space` lexeme cell;
   the token column identifies it as a `space` token.
-  Comments are `comment_sl` (`-- …`) and `comment_ml` (`/-- … --/`).
+  Tilde comments use `~…~`; they emit `comment_sl` when they stay on one line
+  and `comment_ml` when they include a newline. EOF also closes an open comment
+  according to the revised comment diagram.
 * Errors never stop the lexer. It records the error, skips to the next whitespace or
   delimiter, and keeps going, so one run reports every error.
 * To get state paths: `Lexer(source, trace=True)`. After `.run()`, `.paths` has one

@@ -1,0 +1,51 @@
+caplet	{ A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z }
+lowlet	{ a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z }
+letter	{ caplet, lowlet }
+digit	{ 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+numbers	{ 0, digit }
+mathop	{ +, -, *, /, % }
+relop_ch	{ <, >, =, ! }
+ascii	{printable ASCII (32-126)}
+special characters	{unicode symbols not found on ascii table}
+str_chara	{(ascii - “ ,\), special characters, tab, newline}
+str_charb	{(ascii - ‘ ,\), special characters, tab, newline}
+comment_char	{printable ASCII (32-125), tab , newline, special characters}
+eof	{ end-of-file marker }
+delim_space	space, tab
+delim_quote	, "
+delim_datatype	delim_space, newline
+delim_io	delim_space, (, newline
+delim_bool	delim_space, delim_quote, newline, ), }, ], ;, , , mathop, relop_ch
+delim_case	delim_space, newline, (, ‘, -
+delim_default	delim_space, newline, :
+delim_cyc	delim_space, (, newline
+delim_void	delim_space, newline
+delim_logic	delim_space, delim_quote, newline , (
+delim_loop	delim_space, (, newline
+delim_if	delim_space, (, newline
+delim_switch	delim_space, (, newline
+delim_block	delim_space, newline, {
+delim_stmt	delim_space, newline, ;
+delim_struc	delim_space, delim_quote, newline, ; (, [, {, -
+delim_deleo	delim_space, newline
+delim_const	delim_space, newline
+delim_insid	delim_space, newline, [ , “ , ‘
+delim_arithmetic	delim_space, delim_quote, letter, newline, numbers, (, -, =
+delim_oper	delim_space, delim_quote, newline, letter, numbers, (, -, =
+delim_equal	delim_space, newline, delim_quote, letter, numbers, (, [, {, -
+delim_openparen	delim_space, newline, letter, numbers, delim_quote, (, ), [, -, {
+delim_closeparen	delim_space, newline, relop_ch, ), {, }, ;, ,, mathop
+delim_openbracket	delim_space, newline, letter, numbers, delim_quote, [, {, -
+delim_closebracket	delim_space, newline, relop_ch, ), [, ], }, ;, ,, mathop
+delim_opencurly	delim_space, newline, letter, numbers, delim_quote
+delim_closecurly	delim_space, newline, delim_quote, relop_ch, ), ] , ;, ,
+delim_comma	delim_space, newline, letter, numbers, delim_quote, (, [, {, -
+delim_dqopen	str_chara
+delim_dqclose	delim_space newline, ,, ), ], }, ;, :, =, !, +, %
+delim_sqopen	str_charb
+delim_sqclose	delim_space, newline, ,, ), ], }, ;, :, =, !, +, %
+delim_colon	delim_space, newline, letter, numbers, delim_quote, - , [, {
+delim_scolon	delim_space, newline, letter, } , eof
+delim_comments	delim_space, letters, newline, eof, ~
+delim_id	delim_space, newline, mathop, relop_ch, [, ], }, (,), ; , , :
+delim_num	delim_space, newline, mathop, relop_ch, ; , , , ] , }, )

@@ -1,0 +1,15 @@
+~ Arithmetic, comparison, assignment, and grouping tokens. ~
+wharfa left = 10;
+wharfa right = 3;
+left = left + right;
+left -= right;
+left *= 2;
+left /= 2;
+left %= right;
+belial (left <= right) { prin(left); }
+belial (left >= right) { prin(right); }
+belial (left == right) { pas; }
+belial (left != right) { pas; }
+left = (left + right) * (left - right);
+lis matrix = [[1, 2], [3, 4]];
+prin(matrix[0][1]);

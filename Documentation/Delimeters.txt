@@ -1,0 +1,82 @@
+RESERVED WORDS	DELIMITER	DEFINITION
+Built-in Data Types		
+strina	{delim_space, newline}	delim_datatype
+wharfa	{delim_space, newline }	delim_datatype
+flo	{delim_space, newline }	delim_datatype
+truta	{delim_space, newline}	delim_datatype
+lis	{delim_space, newline}	delim_datatype
+glossare	{delim_space, newline }	delim_datatype
+Input / Output Functions		
+prin	{ delim_space, (, newline }	delim_io
+inpub	{ delim_space, (, newline }	delim_io
+formo	{ delim_space, (, newline }	delim_io
+innum	{ delim_space, (, newline }	delim_io
+inflo	{ delim_space, (, newline }	delim_io
+Value & Truth Literals		
+Inaccu	{delim_space, delim_quote, newline, ), }, ], ;, , , mathop, relop_ch}	delim_bool
+Trua	{delim_space, delim_quote, newline, ), }, ], ;, , , mathop, relop_ch}	delim_bool
+Logical Operators		
+an	{ delim_space, delim_quote, newline, ( }	delim_logic
+othan	{ delim_space, delim_quote (, newline }	delim_logic
+neve	{ delim_space, delim_quote(, newline }	delim_logic
+Structural Control Flow		
+belial	{ delim_space, (, newline }	delim_if
+belsa	{ delim_space, (, newline }	delim_if
+elsa	{ delim_space, newline, { }	delim_block
+lood	{ delim_space, (, newline }	delim_loop
+swil	{ delim_space, (, newline }	delim_switch
+cas	{ delim_space, newline, (, ‘, - }	delim_case
+defal	{ delim_space, newline, : }	delim_default
+cycla	{ delim_space, (, newline }	delim_cyc
+repec	{ delim_space, newline, { }	delim_block
+paus	{ delim_space, newline, ; }	delim_stmt
+persis	{ delim_space, newline, ; }	delim_stmt
+pas	{ delim_space, newline, ; }	delim_stmt
+Structural Definitions		
+reor	{ delim_space, delim_quote, newline, ; (, [, {, - }	delim_struc
+voia	{ delim_space, newline }	delim_void
+Variable Operations		
+deleo	{ delim_space, newline}	delim_deleo
+const	{ delim_space, newline }	delim_const
+Object & Collection Membership		
+insid	{ delim_space, newline, [ , “ , ‘ }	delim_insid
+Reserved Symbols	Definition	Delimiter
+Arithmetic Operators		
+=	{ delim_space, newline, letter, numbers, delim_quote, (, -, =}	delim_arithmetic
+-	{ delim_space, newline, letter, numbers, delim_quote, (, -, = }	delim_arithmetic
+*	{ delim_space, newline, letter, numbers, delim_quote, (, -, =}	delim_arithmetic
+/	{ delim_space, newline, letter, numbers, delim_quote, (, -, =}	delim_arithmetic
+%	{ delim_space, newline, letter, numbers, delim_quote, (, -, =}	delim_arithmetic
+Relational Operators		
+<	{ delim_space, newline, letter, numbers, delim_quote, (, -, =}	delim_oper
+>	{ delim_space, newline, letter, numbers, delim_quote, (, -, =}	delim_oper
+<=	{ delim_space, newline, delim_quote, letter, numbers, (, [, {, - }	delim_equal
+>=	{ delim_space, newline, delim_quote, letter, numbers, (, [, {, - }	delim_equal
+==	{ delim_space, newline, delim_quote, letter, numbers, (, [, {, - }	delim_equal
+!=	{ delim_space, newline, delim_quote, letter, numbers, (, [, {, - }	delim_equal
+Assignment and Augmented Operators		
+=	{ delim_space, newline, delim_quote, letter, numbers, (, [, {, - }	delim_equal
++=	{ delim_space, newline, delim_quote, letter, numbers, (, [, {, - }	delim_equal
+-=	{ delim_space, newline, delim_quote, letter, numbers, (, [, {, - }	delim_equal
+*=	{ delim_space, newline, delim_quote, letter, numbers, (, [, {, - }	delim_equal
+/=	{ delim_space, newline, delim_quote, letter, numbers, (, [, {, - }	delim_equal
+%=	{ delim_space, newline, delim_quote, letter, numbers, (, [, {, - }	delim_equal
+Grouping Symbols		
+(	{delim_space, newline, letter, numbers, delim_quote, (, ), [, -, {}	delim_openparen
+)	{delim_space, newline, relop_ch, ), {, }, ;, , , mathop}	delim_closeparen
+[	{delim_space, newline, letter, numbers, delim_quote, [, {, - }	delim_openbracket
+]	{delim_space, newline, relop_ch, ), [, ], }, ;, , , mathop}	delim_closebracket
+{	{delim_space, newline, letter, numbers, delim_quote }	delim_opencurly
+}	{delim_space, newline, delim_quote, relop_ch, ), ] , ; , ,}	delim_closecurly
+Others		
+,	{delim_space, newline, letter, numbers, delim_quote, (, [, {, -}	delim_comma
+" (opening)	{str_chara}	delim_dqopen
+" (closing)	{delim_space newline, , , ), ], }, ;, :, =, !, +, % }	delim_dqclose
+ (opening)	{str_charb}	delim_sqopen
+ (closing)	{delim_space, newline, ,, ), ], }, ;, :, =, !, +, % }	delim_sqclose
+:	{delim_space, newline, letter, numbers, delim_quote, - , [, { }	delim_colon
+;	{delim_space, newline, letter, }, ~, eof}	delim_scolon
+~	{delim_space, letters, newline, eof, ~ }	delim_comments
+Identifiers		
+{delim_space, newline, mathop, relop_ch, [, ], }, (,), ; , , , :}		delim_id
+{delim_space, newline, mathop, relop_ch, ; , , ,], }, ) }		delim_num

@@ -7,6 +7,8 @@ Token types:
   * identifiers, literals, and comments use id, wharfa_lit, flo_lit,
     strina_lit, trua_lit, comment_sl, and comment_ml.
   * source whitespace outside other tokens use space, tab, and newline.
+  * tilde-delimited comments use comment_sl on one line and comment_ml when
+    their lexeme contains a newline.
   * Trua and Inaccu are both trua_lit, so the parser treats them
     like any other literal.
   * A minus sign is never part of a number; -5 is '-' then
@@ -26,6 +28,7 @@ STRINA_LIT = "strina_lit"
 TRUA_LIT = "trua_lit"
 COMMENT_SL = "comment_sl"
 COMMENT_ML = "comment_ml"
+COMMENT = "comment"
 NEWLINE_TOKEN = "newline"
 TAB_TOKEN = "tab"
 SPACE_TOKEN = "space"
@@ -41,9 +44,10 @@ RESERVED_WORDS = (
     # logical operators
     "an", "othan", "neve",
     # control flow
-    "belial", "belsa", "elsa", "lood", "cycla", "paus", "persis", "pas",
+    "belial", "belsa", "elsa", "lood", "swil", "cas", "defal", "cycla",
+    "repec", "paus", "persis", "pas",
     # structural
-    "reor",
+    "reor", "voia",
     # variable operations
     "deleo", "const",
     # membership

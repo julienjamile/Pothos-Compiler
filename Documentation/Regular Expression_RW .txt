@@ -1,0 +1,42 @@
+Pothos	REGULAR EXPRESSION	TOKEN
+Built-in Data Types		
+strina	(s)(t)(r)(i)(n)(a)	strina
+wharfa	(w)(h)(a)(r)(f)(a)	wharfa
+flo	(f)(l)(o)	flo
+truta	(t)(r)(u)(t)(a)	truta
+lis	(l)(i)(s)	lis
+glossare	(g)(l)(o)(s)(s)(a)(r)(e)	glossare
+Input / Output Functions		
+prin()	(p)(r)(i)(n)	prin
+inpub()	(i)(n)(p)(u)(b)	inpub
+formo()	(f)(o)(r)(m)(o)	formo
+innum()	(i)(n)(n)(u)(m)	innum
+inflo()	(i)(n)(f)(l)(o)	inflo
+Value & Truth Literals		
+Inaccu	(I)(n)(a)(c)(c)(u)	Inaccu
+Trua	(T)(r)(u)(a)	Trua
+Logical Operators		
+an	(a)(n)	an
+othan	(o)(t)(h)(a)(n)	othan
+neve	(n)(e)(v)(e)	neve
+Structural Control Flow		
+belial	(b)(e)(l)(i)(a)(l)	belial
+belsa	(b)(e)(l)(s)(a)	belsa
+elsa	(e)(l)(s)(a)	elsa
+lood	(l)(o)(o)(d)	lood
+swil	(s)(w)(i)(l)	swil
+cas	(c)(a)(s)	cas
+defal	(d)(e)(f)(a)(l)	defal
+cycla	(c)(y)(c)(l)(a)	cycla
+repec	(r)(e)(p)(e)(c)	repec
+paus	(p)(a)(u)(s)	paus
+persis	(p)(e)(r)(s)(i)(s)	persis
+pas	(p)(a)(s)	pas
+Structural Definitions		
+reor	(r)(e)(o)(r)	reor
+voia	(v)(o)(i)(a)	voia
+Variable Operations		
+deleo	(d)(e)(l)(e)(o)	deleo
+const	(c)(o)(n)(s)(t)	const
+Object & Collection Membership		
+insid	(i)(n)(s)(i)(d)	insid

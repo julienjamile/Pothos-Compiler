@@ -1,12 +1,21 @@
-/-- Pothos sample program (I. Structure Overview) --/
+~ Pothos sample program (I. Structure Overview) ~
 msg = "Hello, World!";
 prin(msg);
 
 wharfa add(wharfa a, wharfa b){
    reor a + b;
 };
-prin(add(3, 4));   -- prints 7
+prin(add(3, 4));   ~ prints 7 ~
 
 nums = [1, 2, 3]; m = 0;
 lood (m insid nums) { prin(m); }
 belial (m >= 2) { prin('done\n'); } elsa { pas; }
+
+const ONE = 1;
+swil (ONE) {
+    cas ONE: prin("one");
+    defal: pas;
+}
+
+voia greet() { prin("hello \\{name\\}"); reor; }
+repec { pas; } cycla (Trua);

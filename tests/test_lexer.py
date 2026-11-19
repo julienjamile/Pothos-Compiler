@@ -16,6 +16,14 @@ def lex(source):
     return Lexer(source).run()
 
 
+def lex_with_boundary(source):
+    """Scan a fragment followed by a space accepted by the revised tables."""
+    tokens, errors = lex(f"{source} ")
+    if tokens and tokens[-1].type == "space":
+        return tokens[:-1], errors
+    return tokens, errors
+
+
 @pytest.mark.parametrize(
     ("source", "expected"),
     [
@@ -30,7 +38,6 @@ def lex(source):
         ("add(3, 4)", [("id", "add"), ("(", "("), ("wharfa_lit", "3"), (",", ","), ("wharfa_lit", "4"), (")", ")")]),
         ("inpub()", [("inpub", "inpub"), ("(", "("), (")", ")")]),
         ("}", [("}", "}")]),
-        ("[]", [("[", "["), ("]", "]")]),
         ("grid[0][1]", [("id", "grid"), ("[", "["), ("wharfa_lit", "0"), ("]", "]"), ("[", "["), ("wharfa_lit", "1"), ("]", "]")]),
         ("nums[0]+1", [("id", "nums"), ("[", "["), ("wharfa_lit", "0"), ("]", "]"), ("+", "+"), ("wharfa_lit", "1")]),
         ("(1 + 2)*3", [("(", "("), ("wharfa_lit", "1"), ("+", "+"), ("wharfa_lit", "2"), (")", ")"), ("*", "*"), ("wharfa_lit", "3")]),
@@ -44,20 +51,19 @@ def lex(source):
         ("Trua ", [("trua_lit", "Trua")]),
         ("Inaccu ", [("trua_lit", "Inaccu")]),
         ("belsa {\n", [("belsa", "belsa"), ("{", "{"), ("newline", "\n")]),
-        ("-- note", [("comment_sl", "-- note")]),
-        ("--", [("comment_sl", "--")]),
-        ("/-- a - b -- c ---/", [("comment_ml", "/-- a - b -- c ---/")]),
+        ("~ note ~", [("comment_sl", "~ note ~")]),
+        ("~ a - b -- c ~", [("comment_sl", "~ a - b -- c ~")]),
         ("x;\n", [("id", "x"), (";", ";"), ("newline", "\n")]),
         ("elsa {\n", [("elsa", "elsa"), ("{", "{"), ("newline", "\n")]),
         ("inpub()\n", [("inpub", "inpub"), ("(", "("), (")", ")"), ("newline", "\n")]),
         ("grid[0]\n", [("id", "grid"), ("[", "["), ("wharfa_lit", "0"), ("]", "]"), ("newline", "\n")]),
         ("prin\t(\"ok\")", [("prin", "prin"), ("tab", "\t"), ("(", "("), ("strina_lit", '"ok"'), (")", ")")]),
         ("a \t\nb ", [("id", "a"), ("tab", "\t"), ("newline", "\n"), ("id", "b")]),
-        ("elsa {}", [("elsa", "elsa"), ("{", "{"), ("}", "}")]),
+        ("elsa { }", [("elsa", "elsa"), ("{", "{"), ("}", "}")]),
     ],
 )
 def test_valid_lexemes(source, expected):
-    tokens, errors = lex(source)
+    tokens, errors = lex_with_boundary(source)
 
     assert errors == []
     # These grammar examples focus on their non-space lexemes. Dedicated tests
@@ -67,19 +73,19 @@ def test_valid_lexemes(source, expected):
 
 @pytest.mark.parametrize(
     ("escape",),
-    [(r"\n",), (r"\t",), (r"\0",), (r"\"",), (r"\'",), (r"\\",)],
+    [(r"\n",), (r"\t",), (r"\0",), (r"\"",), (r"\'",), (r"\\",), (r"\{",), (r"\}",)],
 )
 def test_string_escape_is_accepted(escape):
     source = f'"a{escape}b"'
 
-    tokens, errors = lex(source)
+    tokens, errors = lex_with_boundary(source)
 
     assert errors == []
     assert [(token.type, token.lexeme) for token in tokens] == [("strina_lit", source)]
 
 
 def test_leading_zero_integer_lexeme_and_value_are_normalized():
-    tokens, errors = lex("wharfa n = 0007;")
+    tokens, errors = lex_with_boundary("wharfa n = 0007;")
 
     assert errors == []
     integer = next(token for token in tokens if token.type == "wharfa_lit")
@@ -89,7 +95,7 @@ def test_leading_zero_integer_lexeme_and_value_are_normalized():
 
 @pytest.mark.parametrize("source", ["000000000000", "000000000000;"])
 def test_all_zero_integer_has_one_zero_lexeme(source):
-    tokens, errors = lex(source)
+    tokens, errors = lex_with_boundary(source)
 
     assert errors == []
     integer = next(token for token in tokens if token.type == "wharfa_lit")
@@ -97,7 +103,7 @@ def test_all_zero_integer_has_one_zero_lexeme(source):
 
 
 def test_ninth_significant_integer_digit_errors_prefix_then_scans_excess_digit():
-    tokens, errors = lex("123456789;")
+    tokens, errors = lex_with_boundary("123456789;")
 
     assert [(token.type, token.lexeme) for token in tokens] == [
         ("wharfa_lit", "9"), (";", ";")
@@ -107,7 +113,7 @@ def test_ninth_significant_integer_digit_errors_prefix_then_scans_excess_digit()
 
 
 def test_twenty_first_identifier_character_errors_prefix_then_scans_suffix():
-    tokens, errors = lex("abcdefghijklmnopqrstu;")
+    tokens, errors = lex_with_boundary("abcdefghijklmnopqrstu;")
 
     assert [(token.type, token.lexeme) for token in tokens] == [
         ("id", "u"), (";", ";")
@@ -128,7 +134,7 @@ def test_twenty_first_identifier_character_errors_prefix_then_scans_suffix():
     ],
 )
 def test_float_is_rounded_to_four_places_and_lexeme_is_normalized(source, expected_value):
-    tokens, errors = lex(source)
+    tokens, errors = lex_with_boundary(source)
 
     assert errors == []
     assert len(tokens) == 1
@@ -146,7 +152,7 @@ def test_float_is_rounded_to_four_places_and_lexeme_is_normalized(source, expect
 
 
 def test_float_without_fraction_digits_normalizes_to_one_decimal_place():
-    tokens, errors = lex("5.")
+    tokens, errors = lex_with_boundary("5.")
 
     assert errors == []
     assert [(token.type, token.lexeme, token.value) for token in tokens] == [
@@ -155,7 +161,7 @@ def test_float_without_fraction_digits_normalizes_to_one_decimal_place():
 
 
 def test_float_with_many_zero_fraction_digits_normalizes_to_zero_point_zero():
-    tokens, errors = lex("000000.00000000000")
+    tokens, errors = lex_with_boundary("000000.00000000000")
 
     assert errors == []
     assert [(token.type, token.lexeme, token.value) for token in tokens] == [
@@ -167,13 +173,9 @@ def test_float_with_many_zero_fraction_digits_normalizes_to_zero_point_zero():
     ("source", "line", "column", "lexeme"),
     [
         (".5", 1, 1, ".5"),
-        ("+25", 1, 1, "+25"),
         ('"bad\\x"', 1, 5, "\\x"),
             ('"unclosed\nnext', 1, 1, '"unclosed\nnext'),
-        ("x --/", 1, 3, "--/"),
-        ("/-- never closed", 1, 1, "/-- never closed"),
         ("café", 1, 4, "é"),
-        ("-- café", 1, 7, "é"),
         ("_name", 1, 1, "_name"),
         ("prin+", 1, 1, "prin+"),
     ],
@@ -284,11 +286,13 @@ def test_operator_can_be_followed_by_a_negative_operand(source, expected_types):
     assert [token.type for token in tokens if token.type != "space"] == expected_types
 
 
-def test_subtraction_followed_by_negative_number_needs_a_space():
-    tokens, errors = lex("1--2")
+def test_adjacent_minus_signs_are_two_operators_under_tilde_comments():
+    tokens, errors = lex("1--2;")
 
     assert errors == []
-    assert [(token.type, token.lexeme) for token in tokens] == [("wharfa_lit", "1"), ("comment_sl", "--2")]
+    assert [(token.type, token.lexeme) for token in tokens] == [
+        ("wharfa_lit", "1"), ("-", "-"), ("-", "-"), ("wharfa_lit", "2"), (";", ";")
+    ]
 
 
 def test_identifier_at_eof_is_not_delimited():
@@ -305,7 +309,36 @@ def test_identifier_delimiter_and_diagram_trace_use_updated_state_ids():
 
     assert errors == []
     assert [(token.type, token.lexeme) for token in tokens] == [("id", "x"), (";", ";")]
-    assert lexer.paths[0][3] == "0 -> 200 -> 201*"
+    assert lexer.paths[0][3] == "0 -> 219 -> 220*"
+
+
+@pytest.mark.parametrize(
+    ("source", "token_type", "trace"),
+    [
+        ("cas 1;", "cas", "0 -> 14 -> 25 -> 26 -> 27*"),
+        ("defal: ", "defal", "0 -> 28 -> 29 -> 34 -> 35 -> 36 -> 37*"),
+        ("repec { ", "repec", "0 -> 122 -> 123 -> 127 -> 128 -> 130 -> 131*"),
+        ("swil ( ", "swil", "0 -> 132 -> 139 -> 140 -> 141 -> 142*"),
+        ("voia ", "voia", "0 -> 154 -> 155 -> 156 -> 157 -> 158*"),
+    ],
+)
+def test_revised_reserved_words_use_their_diagram_trace(source, token_type, trace):
+    lexer = Lexer(source, trace=True)
+
+    tokens, errors = lexer.run()
+
+    assert errors == []
+    assert tokens[0].type == token_type
+    assert lexer.paths[0][3] == trace
+
+
+def test_tilde_comment_accepts_eof_and_newline_content():
+    tokens, errors = lex("~ first\nsecond")
+
+    assert errors == []
+    assert [(token.type, token.lexeme) for token in tokens] == [
+        ("comment_ml", "~ first\nsecond")
+    ]
 
 
 @pytest.mark.parametrize("quote", ['"', "'"])
@@ -330,11 +363,11 @@ def test_delimiter_changes_allow_newline_and_negative_operator_boundaries():
 
 
 def test_keyword_parenthesis_and_newline_delimiters_are_applied():
-    tokens, errors = lex("flo(x; inpub\n belial\n belsa (x;")
+    tokens, errors = lex("flo x; inpub\n belial\n belsa (x;")
 
     assert errors == []
     assert [(token.type, token.lexeme) for token in tokens if token.type != "space"] == [
-        ("flo", "flo"), ("(", "("), ("id", "x"), (";", ";"),
+        ("flo", "flo"), ("id", "x"), (";", ";"),
         ("inpub", "inpub"), ("newline", "\n"), ("belial", "belial"),
         ("newline", "\n"), ("belsa", "belsa"), ("(", "("),
         ("id", "x"), (";", ";"),
@@ -342,17 +375,25 @@ def test_keyword_parenthesis_and_newline_delimiters_are_applied():
 
 
 @pytest.mark.parametrize("keyword", ["strina", "wharfa", "flo", "trua", "lis", "glossare"])
-def test_each_datatype_keyword_accepts_open_parenthesis(keyword):
-    tokens, errors = lex(f"{keyword}(x;")
+def test_each_datatype_keyword_accepts_space_delimiter(keyword):
+    tokens, errors = lex(f"{keyword} x;")
 
     assert errors == []
     assert [(token.type, token.lexeme) for token in tokens] == [
-        (keyword, keyword), ("(", "("), ("id", "x"), (";", ";")
+        (keyword, keyword), ("space", " "), ("id", "x"), (";", ";")
     ]
 
 
+@pytest.mark.parametrize("keyword", ["strina", "wharfa", "flo", "trua", "lis", "glossare"])
+def test_datatype_keyword_does_not_accept_open_parenthesis(keyword):
+    tokens, errors = lex(f"{keyword}(x;")
+
+    assert errors
+    assert all(token.type != keyword for token in tokens)
+
+
 def test_qa_lexer_delimiter_additions_and_removals_are_applied():
-    assert "(" in delim_datatype
+    assert "(" not in delim_datatype
     assert NEWLINE in delim_io and NEWLINE in delim_logic
     assert NEWLINE in delim_plus and "-" in delim_plus
     assert NEWLINE in delim_arithmetic and "-" in delim_arithmetic
@@ -361,17 +402,17 @@ def test_qa_lexer_delimiter_additions_and_removals_are_applied():
     assert NEWLINE in delim_openparen and NEWLINE in delim_comma
     assert NEWLINE in delim_logic_newline and NEWLINE in delim_deleo and NEWLINE in delim_const
     assert {"+", "-", "*", "/", "%", "<", ">", "=", "!"} <= delim_id
-    assert assops <= delim_id
+    assert assops.isdisjoint(delim_id)
     assert EOF not in delim_id
-    assert EOF in delim_num
+    assert EOF not in delim_num
     assert {"(", "-"}.isdisjoint(delim_insid)
     assert NEWLINE in delim_openbracket and "(" not in delim_openbracket
     assert {"<", ">", "+", "-", "*", "/", "%", "=", "!"} <= delim_closeparen
     assert "]" not in delim_closeparen
-    assert ";" not in delim_closecurly
+    assert ";" in delim_closecurly
     assert NEWLINE in delim_dqopen and NEWLINE in delim_sqopen
     assert {"<", ">", "-", "*", "/"}.isdisjoint(delim_dqclose)
     assert {"<", ">", "-", "*", "/"}.isdisjoint(delim_sqclose)
     assert {"<", ">", "=", "!", "+", "-", "*", "/", "%"} <= delim_closeparen
     assert "-" not in delim_scolon
-    assert {":", "+", "-", "*", "/", "%", "<", ">", EOF}.isdisjoint(delim_bool)
+    assert {"+", "-", "*", "/", "%", "<", ">", "=", "!"} <= delim_bool

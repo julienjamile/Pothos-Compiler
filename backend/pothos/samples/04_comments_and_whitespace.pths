@@ -1,0 +1,8 @@
+~ A single-line comment. ~
+wharfa first = 1;
+
+~ A comment can cross lines,
+contain punctuation like -- and /--,
+and include Unicode text: café. ~
+wharfa second = 2;
+	prin(first + second);

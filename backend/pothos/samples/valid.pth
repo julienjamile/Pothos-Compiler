@@ -2,8 +2,8 @@ strina wharfa flo trua lis glossare
 prin inpub formo innum inflo 
 Trua Inaccu 
 an othan neve 
-belial belsa elsa lood cycla paus persis pas
-reor deleo const insid 
+belial belsa elsa lood swil cas defal cycla repec paus persis pas
+reor voia deleo const insid 
 
 wharfa count = 007;
 flo ratio = 12.5;
@@ -28,7 +28,6 @@ cycla (count == 10) {
 }
 deleo count;
 const answer = Trua;
--- single-line comment
-/-- multi-line
-comment with - and -- inside
---/
+~ single-line comment ~
+~ multi-line
+comment with - and -- inside ~

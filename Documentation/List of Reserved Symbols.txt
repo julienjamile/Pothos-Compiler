@@ -1,0 +1,42 @@
+List of Reserved Symbols (Existing)	Functions/Descriptions	List of Symbols Words (Proposed)	Examples
+Arithmetic Operators			
+=	Addition or string concatenation	=	x = 5 + 3; or s = "A" + "B";
+-	Subtraction; unary minus handled by parser	-	x = 5 - 3; or y = -5;
+*	Multiplication	*	area = w * h;
+/	Division	/	"p = 10 / 2;
+(integer result)
+q = 10.0/2.0
+(float result)"
+%	Modulo	%	r = 10 % 3;
+Relational Operators			
+<	Less-than comparison	<	belial(x < 10){ }
+>	Greater-than comparison	>	belial(y > 5){ }
+<=	Less-than-or-equal comparison	<=	belial(z <= 100){ }
+>=	Greater-than-or-equal comparison	>=	belial(age >= 18){ }
+==	Equality comparison	==	belial(name == "Ana"){}
+!=	Inequality comparison	!=	belial(x != 0){}
+Assignment and Augmented Operators			
+=	Assignment	=	score = 100;
++=	Augmented add-assign	=	count += 1;
+-=	Augmented subtract-assign	-=	lives -= 1;
+*=	Augmented multiply-assign	*=	total *= 2;
+/=	Augmented divide-assign	/=	avg /= n;
+%=	Augmented modulo-assign	%=	rem %= 5;
+Grouping Symbols			
+(	Open parenthesis -- grouping or function call	(	x = (1 + 2) * 3;
+)	Close parenthesis – grouping or function call	)	prin("Hi");
+[	Open bracket – list literal or subscript	[	nums = [1, 2];
+]	Close bracket – list literal or subscript	]	x = nums[0];
+{	Open brace – glossare literal or code block	{	belial(x==1){
+}	Close brace – glossare literal or code block	}	data = {"a":1};
+Others			
+,	Separator for arguments or elements	,	nums = [1, 2, 3];
+"	Double quote: opens or closes a strina literal	"	msg = "Hello";
+	Single quote: opens or closes a strina literal		msg = 'Hello';
+:	Key separator in glossare literals	:	data = {"name": "Ana"};
+;	Statement separator	;	x = 5;
+~	Opens and closes a comment; one form serves single-line and multi-line.	~	"x = 5; ~ this is a comment~
+
+~ this
+Is a
+Comment ~"

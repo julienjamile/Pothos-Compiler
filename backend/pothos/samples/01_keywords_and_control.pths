@@ -1,0 +1,22 @@
+~ Reserved words, calls, branches, switch labels, and loop forms. ~
+wharfa count = 007;
+strina label = "count";
+flo ratio = 12.34567;
+trua ready = Trua;
+lis values = [count, 2, 3];
+glossare record = {"name": label, "value": count};
+
+prin(formo("{label}: \\{label\\}"));
+inpub();
+innum();
+inflo();
+belial (ready) { persis; }
+belsa (count < 10) { count += 1; }
+elsa { pas; }
+swil (count) { cas count: prin("match"); defal: pas; }
+lood (i = 0; i < 3; i += 1) { prin(i); }
+cycla (count > 0) { paus; }
+repec { pas; } cycla (Inaccu);
+deleo record;
+const LIMIT = 20;
+voia greet() { reor; }

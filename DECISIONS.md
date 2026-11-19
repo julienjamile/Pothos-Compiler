@@ -19,7 +19,7 @@ This log records decisions evidenced by approved sources or explicitly approved 
 - **Date:** 2026-11-11 (documentation record)
 - **Topic:** Project scope
 - **Context:** Conventional compiler designs include optional techniques and stages not necessarily required here.
-- **Options considered:** Implement traditional features by default; implement only paper/course-approved requirements.
+- **Options considered:** Impleme/nt traditional features by default; implement only paper/course-approved requirements.
 - **Selected decision:** Include only requirements supported by the Pothos paper, course/project requirements, or later approved decision.
 - **Reasoning:** Project instructions explicitly prohibit scope expansion based only on convention.
 - **Affected components/files:** Roadmap, pipeline, parser, semantic analysis, IR/code generation.
@@ -129,3 +129,14 @@ This log records decisions evidenced by approved sources or explicitly approved 
 - **Affected files:** `backend/pothos/lexer/charsets.py`, `backend/pothos/lexer/lexer.py`, `tests/test_lexer.py`, `LEXER_AUDIT.md`, `PROGRESS.md`, and lexer walkthrough/reference notes.
 - **Verification:** `.venv/Scripts/python.exe -m pytest tests/test_lexer.py -q --tb=no` ? 86 passed, 7 failed after the datatype accepting-state fix. Failures remain the six existing EOF-after-`)`/`]` cases and `+25` lexical-error expectation. `git diff --check` and Python compilation passed.
 - **Status:** Approved and implemented.
+
+## D-011 — Add reserved words shown in the 2026-11-20 Documentation image
+
+- **Date:** 2026-11-20
+- **Topic:** Reserved-word inventory and keyword delimiters
+- **Context:** The revised reserved-word image and accompanying text list were supplied in `Documentation/`. The student clarified that the images are the primary transition reference and approved proceeding with the revisions. The text list/regular-expression list/CFG spell the datatype keyword `truta`, while the image shows `trua` and the current lexer already recognizes `trua`.
+- **Selected behavior:** Add `swil`, `cas`, `defal`, `repec`, and `voia` as reserved words, with `delim_switch`, `delim_case`, `delim_default`, `delim_block`, and `delim_void` respectively. Apply the revised delimiter sheet to existing sets and wire affected keyword/operator transitions to their named sets. Accept the string escapes `\{` and `\}` shown in the string diagram. Retain `trua` as shown in the image; do not add `truta` as an alias. Record the spelling discrepancy for later documentation reconciliation. The reserved-symbol image is followed where the text list's `+=` token label is unclear.
+- **Implementation note:** To preserve existing hand-written lexer paths, the five new word paths use supplemental states 310–332. This does not yet align every state number to the revised image; P-03 tracks that reconciliation.
+- **Affected files:** `backend/pothos/lexer/tokens.py`, `backend/pothos/lexer/charsets.py`, `backend/pothos/lexer/lexer.py`, `backend/pothos/READ.md`, `backend/pothos/WALKTHROUGH.md`, `backend/pothos/samples/{sample.pths,valid.pth,errors.pths}`, `LEXER_AUDIT.md`, `PROGRESS.md`, and `DEVELOPMENT.md`.
+- **Verification:** The reserved-word image and text transcription were inspected; the CFG was read for context only. Python compilation succeeded. `.venv/Scripts/python.exe -m pytest tests/test_lexer.py -q --tb=short` reported **101 passed** on 2026-11-20, including revised-word trace, delimiter, tilde-comment, and brace-escape coverage. No syntax implementation was performed.
+- **Status:** Approved and implemented. Tilde comments use the existing line/multiline token labels based on whether their lexeme contains a newline; EOF closes an open tilde comment as drawn. Full legacy TD1 trace-number reconciliation remains open.

@@ -1,0 +1,35 @@
+Pothos	Regular Expressions	Token
+Arithmetic Operators		
+=	(+)	=
+-	(-)	-
+*	(*)	*
+/	(/)	/
+%	(%)	%
+Relational Operators		
+<	(<)	<
+>	(>)	>
+<=	(<)(=)	<=
+>=	(>)(=)	>=
+==	(=)(=)	==
+!=	(!)(=)	!=
+Assignment and Augmented Operators		
+=	(=)	=
++=	(+)(=)	=
+-=	(-)(=)	-=
+*=	(*)(=)	*=
+/=	(/)(=)	/=
+%=	(%)(=)	%=
+Grouping Symbols		
+(	(()	(
+)	())	)
+[	([)	[
+]	(])	]
+{	({)	{
+}	(})	}
+Others		
+,	(,)	,
+"	(")	"
+	(')	
+:	(:)	:
+;	(;)	;
+~	(~)	(~)

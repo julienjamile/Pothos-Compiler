@@ -4,14 +4,14 @@ lexer.py - the Pothos lexical analyzer (hand-written state machine).
 How to read this file alongside the transition diagrams:
 
   * `state` holds a TD state number. State 0 is the shared start state.
-      TD1 Reserved Words ............ states   1-143   -> _td1_reserved_words
+      TD1 Reserved Words ............ states   1-143, 310-332 -> _td1_reserved_words
       TD2 Reserved Symbols .......... states 144-199   -> _td2_reserved_symbols
       TD3 Identifiers ............... states 200-240   -> _td3_identifiers
       TD4 Integer and Float Literals  states 241-268   -> _td4_integer_literals
       TD5 Strings and Comments ...... states 269-281   -> _td5_strings_comments
-    A number used in two TDs is ONE state, so it has ONE branch here:
-    148 "-", 157 "/", 161 "/-" (TD2 branches, with their TD5 edges) and
-    269 '"', 272 "'" (opening quote states drawn in TD5).
+    Quote-opening and comment-start states are shared with TD5. The updated
+    tilde comment path uses states 294-297; new reserved words use supplemental
+    TD1 states 310-332 so existing paths keep their trace numbers.
 
   * One `if state == N:` branch per non-final state. Inside it, one line per
     outgoing edge, tested against the edge label (a character or a set from
@@ -42,16 +42,18 @@ from .charsets import (
     delim_openparen, delim_openbracket, delim_opencurly, delim_closeparen,
     delim_closebracket, delim_closecurly, delim_comma, delim_colon, delim_scolon,
     delim_datatype, delim_io, delim_logic, delim_logic_newline, delim_struc, delim_deleo, delim_const,
+    delim_switch, delim_case, delim_default, delim_void, delim_if, delim_loop, delim_cyc,
+    comment_char, delim_comments, special_characters,
     delim_insid,
     delim_plus, delim_arithmetic, delim_oper, delim_equality,
     delim_equal, delim_augoper, delim_dqopen, delim_dqclose, delim_sqopen,
-    delim_sqclose, delim_slcomment, delim_mlcomment_open, delim_mlcomment_close,
+    delim_sqclose,
     alphanum_us,
 )
 from .errors import LexicalError
 from .tokens import (
     Token, ID, WHARFA_LIT, FLO_LIT, STRINA_LIT, TRUA_LIT, COMMENT_SL, COMMENT_ML,
-    SPACE_TOKEN, NEWLINE_TOKEN, TAB_TOKEN,
+    SPACE_TOKEN, NEWLINE_TOKEN, TAB_TOKEN, COMMENT,
 )
 
 # A complete reserved word followed by a
@@ -64,6 +66,40 @@ COMPLETE_KEYWORD_FALLS_BACK_TO_ID = False
 
 END = -1        # pseudo-state: the current token is finished (accepted or error)
 
+# Internal branch numbers are retained while the revised diagrams are adopted.
+# Trace output maps the revised TD2-TD5 numbering and the newly added TD1 paths.
+# Remaining legacy TD1 paths are reconciled separately in P-03.
+TRACE_STATE_IDS = {
+    25: 28, 26: 29, 27: 30, 28: 31, 29: 32, 30: 33,
+    310: 25, 311: 26, 312: 27, 313: 34, 314: 35, 315: 36, 316: 37,
+    115: 122, 116: 123, 320: 127, 321: 128, 322: 130, 323: 131,
+    120: 132, 324: 139, 325: 140, 326: 141, 327: 142,
+    328: 154, 329: 155, 330: 156, 331: 157, 332: 158,
+    144: 166, 145: 167, 146: 168, 147: 169, 148: 170, 149: 171,
+    150: 172, 151: 173, 153: 174, 154: 175, 155: 176, 156: 177,
+    157: 178, 158: 179, 159: 180, 160: 181, 163: 182, 164: 183,
+    165: 184, 166: 185, 167: 186, 168: 187, 169: 188, 170: 189,
+    171: 190, 172: 191, 173: 192, 174: 193, 175: 194, 176: 195,
+    177: 196, 178: 197, 179: 198, 180: 199, 181: 200, 182: 201,
+    183: 202, 184: 203, 185: 204, 186: 205, 187: 206, 188: 207,
+    189: 208, 190: 209, 191: 210, 192: 211, 193: 212, 194: 213,
+    195: 214, 196: 215, 197: 216, 198: 217, 199: 218,
+    200: 219, 201: 220, 202: 221, 203: 222, 204: 223, 205: 224,
+    206: 225, 207: 226, 208: 227, 209: 228, 210: 229, 211: 230,
+    212: 231, 213: 232, 214: 233, 215: 234, 216: 235, 217: 236,
+    218: 237, 219: 238, 221: 239, 222: 240, 223: 241, 224: 242,
+    225: 243, 226: 244, 227: 245, 228: 246, 229: 247, 230: 248,
+    231: 249, 232: 250, 233: 251, 234: 252, 235: 253, 236: 254,
+    237: 255, 238: 256, 239: 257, 240: 258,
+    241: 259, 242: 260, 243: 261, 244: 262, 245: 263, 246: 264,
+    247: 265, 248: 266, 249: 267, 250: 268, 251: 269, 252: 270,
+    253: 271, 254: 272, 255: 273, 256: 274, 257: 275, 258: 276,
+    259: 277, 260: 279, 261: 278, 262: 279, 263: 280, 264: 281,
+    265: 282, 266: 283, 267: 284, 268: 285, 269: 286, 270: 287,
+    271: 288, 272: 290, 273: 291, 274: 292, 294: 294, 295: 295,
+    296: 296, 297: 297, 301: 289, 302: 293,
+}
+
 # Recovery stops at whitespace, brackets, separators, and quotes so strings remain visible.
 RECOVERY_STOP = delim_space | {"(", ")", "{", "}", "[", "]", ";", ",", ":"} | delim_quote
 ID_DELIMITER = delim_id  # EOF is not an identifier delimiter in the current QA table.
@@ -75,8 +111,6 @@ ID_TOO_LONG = "identifier exceeds 20 characters"
 INT_TOO_LONG = "wharfa literal exceeds 8 significant digits"
 STR_NO_CLOSE_DQ = 'unterminated strina literal: missing closing "'
 STR_NO_CLOSE_SQ = "unterminated strina literal: missing closing '"
-ML_UNTERMINATED = "unterminated multi-line comment: missing '--/'"
-STRAY_CLOSER = "closing '--/' without an opening '/--'"
 UNDERSCORE_START = "invalid character '_': an identifier must begin with a letter"
 
 
@@ -166,22 +200,20 @@ class Lexer:
                     state = self._error_non_ascii_escape(c, 269)
                 elif state == 302:
                     state = self._error_non_ascii_escape(c, 272)
-                elif state == 275:
-                    state = self._error_inside(275, _not_ascii(c, "source"), self.pos)
-                elif state in (277, 278, 279):
-                    state = self._error_inside(277, _not_ascii(c, "source"), self.pos)
+                elif state == 294:
+                    state = self._go(294) if c in special_characters else self._error_inside(294, _not_ascii(c, "a comment"), self.pos)
                 elif state == 270:
                     state = self._accept(start, 271, STRINA_LIT)
                 elif state == 273:
                     state = self._accept(start, 274, STRINA_LIT)
-                elif state == 280:
-                    state = self._accept(start, 281, COMMENT_ML)
                 else:
                     state = self._error_character(c)
                 continue
             if state == 0:
                 state = self._state_0(c, start)
             elif 1 <= state <= 143:
+                state = self._td1_reserved_words(state, c, start)
+            elif 310 <= state <= 332:
                 state = self._td1_reserved_words(state, c, start)
             elif state in (269, 272, 301, 302):
                 state = self._td5_strings_comments(state, c, start)
@@ -203,7 +235,7 @@ class Lexer:
         """Take an edge: consume the current character and move to next_state."""
         self.pos += 1
         if self.trace:
-            self._path.append(str(next_state))
+            self._path.append(str(TRACE_STATE_IDS.get(next_state, next_state)))
         return next_state
 
     def _accept(self, start: int, final_state: int, token_type: str, retract: int = 1) -> int:
@@ -217,7 +249,9 @@ class Lexer:
         self.pos -= retract         # give it back (and for **, one more)
         source_lexeme = self.src[start:self.pos]
         lexeme = source_lexeme
-        is_comment = token_type in (COMMENT_SL, COMMENT_ML)
+        is_comment = token_type in (COMMENT_SL, COMMENT_ML, COMMENT)
+        if token_type == COMMENT:
+            token_type = COMMENT_ML if NEWLINE in source_lexeme else COMMENT_SL
         if not self._bad and not (is_comment and self.skip_comments):
             line, col = self._where(start)
             value = None
@@ -239,7 +273,8 @@ class Lexer:
                 value = int(lexeme)
             self.tokens.append(Token(token_type, lexeme, line, col, value))
         if self.trace:
-            self._path.append(f"{final_state}{'*' * retract}")
+            trace_state = TRACE_STATE_IDS.get(final_state, final_state)
+            self._path.append(f"{trace_state}{'*' * retract}")
             self._save_path(start, source_lexeme)
         return END
 
@@ -368,6 +403,7 @@ class Lexer:
         if c == "s": return self._go(120)                 # s
         if c == "t": return self._go(127)                 # t
         if c == "T": return self._go(132)                 # T
+        if c == "v": return self._go(328)                 # added word: voia
         if c == "w": return self._go(137)                 # w
         # TD3: any other letter starts an identifier
         if c in letter: return self._go(200)
@@ -376,9 +412,9 @@ class Lexer:
         if c in digit: return self._go(243)
         # TD2: reserved symbols (" and ' continue in TD5)
         if c == "+": return self._go(144)
-        if c == "-": return self._go(148)                 # also TD4 (negative) and TD5 (--)
+        if c == "-": return self._go(148)                 # arithmetic operator
         if c == "*": return self._go(153)
-        if c == "/": return self._go(157)                 # also TD5 (/--)
+        if c == "/": return self._go(157)
         if c == "%": return self._go(163)
         if c == "<": return self._go(167)
         if c == ">": return self._go(171)
@@ -395,6 +431,7 @@ class Lexer:
         if c == ";": return self._go(198)
         if c == '"': return self._go(269)
         if c == "'": return self._go(272)
+        if c == "~": return self._go(294)                 # revised paired comment marker
         # no edge from state 0
         if c == "_":
             return self._error(start, UNDERSCORE_START)
@@ -427,17 +464,18 @@ class Lexer:
             if c == "l": return self._go(9)
             return self._restart_at_200(start)            # no reserved-word match
         if state == 9:                                    # read "belial" (complete)
-            if c in delim_io: return self._accept(start, 10, "belial")  # 9 -> 10*
-            return self._keyword_not_delimited(start, "belial", "delim_io", c)  # keyword delimiter handling
+            if c in delim_if: return self._accept(start, 10, "belial")  # 9 -> 10*
+            return self._keyword_not_delimited(start, "belial", "delim_if", c)
         if state == 11:                                   # read "bels"
             if c == "a": return self._go(12)
             return self._restart_at_200(start)            # no reserved-word match
         if state == 12:                                   # read "belsa" (complete)
-            if c in delim_logic: return self._accept(start, 13, "belsa")  # 12 -> 13*
-            return self._keyword_not_delimited(start, "belsa", "delim_logic", c)
+            if c in delim_if: return self._accept(start, 13, "belsa")
+            return self._keyword_not_delimited(start, "belsa", "delim_if", c)
         if state == 14:                                   # read "c"
             if c == "o": return self._go(15)
             if c == "y": return self._go(20)
+            if c == "a": return self._go(310)             # added word: cas
             return self._restart_at_200(start)            # no reserved-word match
         if state == 15:                                   # read "co"
             if c == "n": return self._go(16)
@@ -461,13 +499,14 @@ class Lexer:
             if c == "a": return self._go(23)
             return self._restart_at_200(start)            # no reserved-word match
         if state == 23:                                   # read "cycla" (complete)
-            if c in delim_io: return self._accept(start, 24, "cycla")  # 23 -> 24*
-            return self._keyword_not_delimited(start, "cycla", "delim_io", c)  # keyword delimiter handling
+            if c in delim_cyc: return self._accept(start, 24, "cycla")
+            return self._keyword_not_delimited(start, "cycla", "delim_cyc", c)
         if state == 25:                                   # read "d"
             if c == "e": return self._go(26)
             return self._restart_at_200(start)            # no reserved-word match
         if state == 26:                                   # read "de"
             if c == "l": return self._go(27)
+            if c == "f": return self._go(313)             # added word: defal
             return self._restart_at_200(start)            # no reserved-word match
         if state == 27:                                   # read "del"
             if c == "e": return self._go(28)
@@ -478,6 +517,21 @@ class Lexer:
         if state == 29:                                   # read "deleo" (complete)
             if c in delim_deleo: return self._accept(start, 30, "deleo")  # 29 -> 30*
             return self._keyword_not_delimited(start, "deleo", "delim_deleo", c)
+        if state == 310:                                  # read "ca"
+            if c == "s": return self._go(311)
+            return self._restart_at_200(start)
+        if state == 311:                                  # read "cas" (complete)
+            if c in delim_case: return self._accept(start, 312, "cas")
+            return self._keyword_not_delimited(start, "cas", "delim_case", c)
+        if state == 313:                                  # read "def"
+            if c == "a": return self._go(314)
+            return self._restart_at_200(start)
+        if state == 314:                                  # read "defa"
+            if c == "l": return self._go(315)
+            return self._restart_at_200(start)
+        if state == 315:                                  # read "defal" (complete)
+            if c in delim_default: return self._accept(start, 316, "defal")
+            return self._keyword_not_delimited(start, "defal", "delim_default", c)
         if state == 31:                                   # read "e"
             if c == "l": return self._go(32)
             return self._restart_at_200(start)            # no reserved-word match
@@ -616,8 +670,8 @@ class Lexer:
             if c == "d": return self._go(85)
             return self._restart_at_200(start)            # no reserved-word match
         if state == 85:                                   # read "lood" (complete)
-            if c in delim_io: return self._accept(start, 86, "lood")  # 85 -> 86*
-            return self._keyword_not_delimited(start, "lood", "delim_io", c)  # keyword delimiter handling
+            if c in delim_loop: return self._accept(start, 86, "lood")
+            return self._keyword_not_delimited(start, "lood", "delim_loop", c)
         if state == 87:                                   # read "n"
             if c == "e": return self._go(88)
             return self._restart_at_200(start)            # no reserved-word match
@@ -692,6 +746,7 @@ class Lexer:
             return self._restart_at_200(start)            # no reserved-word match
         if state == 116:                                  # read "re"
             if c == "o": return self._go(117)
+            if c == "p": return self._go(320)             # added word: repec
             return self._restart_at_200(start)            # no reserved-word match
         if state == 117:                                  # read "reo"
             if c == "r": return self._go(118)
@@ -699,8 +754,18 @@ class Lexer:
         if state == 118:                                  # read "reor" (complete)
             if c in REOR_DELIMITER: return self._accept(start, 119, "reor")  # 118 -> 119*
             return self._keyword_not_delimited(start, "reor", "REOR_DELIMITER", c)
+        if state == 320:                                  # read "rep"
+            if c == "e": return self._go(321)
+            return self._restart_at_200(start)
+        if state == 321:                                  # read "repe"
+            if c == "c": return self._go(322)
+            return self._restart_at_200(start)
+        if state == 322:                                  # read "repec" (complete)
+            if c in delim_block: return self._accept(start, 323, "repec")
+            return self._keyword_not_delimited(start, "repec", "delim_block", c)
         if state == 120:                                  # read "s"
             if c == "t": return self._go(121)
+            if c == "w": return self._go(324)             # added word: swil
             return self._restart_at_200(start)            # no reserved-word match
         if state == 121:                                  # read "st"
             if c == "r": return self._go(122)
@@ -717,6 +782,15 @@ class Lexer:
         if state == 125:                                  # read "strina" (complete)
             if c in delim_datatype: return self._accept(start, 126, "strina")  # 125 -> 126*
             return self._keyword_not_delimited(start, "strina", "delim_datatype", c)  # keyword delimiter handling
+        if state == 324:                                  # read "sw"
+            if c == "i": return self._go(325)
+            return self._restart_at_200(start)
+        if state == 325:                                  # read "swi"
+            if c == "l": return self._go(326)
+            return self._restart_at_200(start)
+        if state == 326:                                  # read "swil" (complete)
+            if c in delim_switch: return self._accept(start, 327, "swil")
+            return self._keyword_not_delimited(start, "swil", "delim_switch", c)
         if state == 127:                                  # read "t"
             if c == "r": return self._go(128)
             return self._restart_at_200(start)            # no reserved-word match
@@ -759,6 +833,18 @@ class Lexer:
         if state == 142:                                  # read "wharfa" (complete)
             if c in delim_datatype: return self._accept(start, 143, "wharfa")  # 142 -> 143*
             return self._keyword_not_delimited(start, "wharfa", "delim_datatype", c)  # keyword delimiter handling
+        if state == 328:                                  # read "v"
+            if c == "o": return self._go(329)
+            return self._restart_at_200(start)
+        if state == 329:                                  # read "vo"
+            if c == "i": return self._go(330)
+            return self._restart_at_200(start)
+        if state == 330:                                  # read "voi"
+            if c == "a": return self._go(331)
+            return self._restart_at_200(start)
+        if state == 331:                                  # read "voia" (complete)
+            if c in delim_void: return self._accept(start, 332, "voia")
+            return self._keyword_not_delimited(start, "voia", "delim_void", c)
         raise AssertionError(f"unknown TD1 state {state}")
 
     # ============================================ TD2  Reserved Symbols 137-195
@@ -772,9 +858,8 @@ class Lexer:
             if c in delim_augoper: return self._accept(start, 147, "+=")        # 146 -> 147*
             return self._error(start, _cannot_follow(c, "'+='", "delim_augoper"))
 
-        if state == 148:                                  # read "-"  (shared: TD2, TD5)
+        if state == 148:                                  # read "-"
             if c == "=":                    return self._go(150)               # TD2: -=
-            if c == "-":                    return self._go(275)               # TD5: -- comment
             if c in delim_oper:            return self._accept(start, 149, "-")   # 148 -> 149*
             return self._error(start, _cannot_follow(c, "'-'", "delim_oper"))
         if state == 150:                                  # read "-="
@@ -789,21 +874,13 @@ class Lexer:
             if c in delim_augoper: return self._accept(start, 156, "*=")        # 155 -> 156*
             return self._error(start, _cannot_follow(c, "'*='", "delim_augoper"))
 
-        if state == 157:                                  # read "/"  (shared: TD2, TD5)
+        if state == 157:                                  # read "/"
             if c == "=":          return self._go(159)
-            if c == "-":          return self._go(161)
             if c in delim_arithmetic: return self._accept(start, 158, "/")         # 157 -> 158*
             return self._error(start, _cannot_follow(c, "'/'", "delim_oper"))
         if state == 159:                                  # read "/="
             if c in delim_augoper: return self._accept(start, 160, "/=")        # 159 -> 160*
             return self._error(start, _cannot_follow(c, "'/='", "delim_augoper"))
-        if state == 161:                                  # read "/-"  (shared: TD2, TD5)
-            if c == "-":          return self._go(277)                         # TD5: /-- comment
-            # 154**: "/" then "-" then a delim_oper character (10/-2, a/-b).
-            # Give back 2 characters ("-" and c), emit "/"; the "-" is read again.
-            if c in delim_oper:  return self._accept(start, 162, "/", retract=2)
-            return self._error(start, _cannot_follow(c, "'-'", "delim_oper"))
-
         if state == 163:                                  # read "%"
             if c == "=":          return self._go(165)
             if c in delim_arithmetic: return self._accept(start, 164, "%")         # 163 -> 164*
@@ -814,34 +891,34 @@ class Lexer:
 
         if state == 167:                                  # read "<"
             if c == "=":          return self._go(169)
-            if c in delim_equality:  return self._accept(start, 168, "<")         # 167 -> 168*
-            return self._error(start, _cannot_follow(c, "'<'", "delim_equality"))
+            if c in delim_oper:  return self._accept(start, 168, "<")
+            return self._error(start, _cannot_follow(c, "'<'", "delim_oper"))
         if state == 169:                                  # read "<="
-            if c in delim_equality:  return self._accept(start, 170, "<=")        # 169 -> 170*
-            return self._error(start, _cannot_follow(c, "'<='", "delim_equality"))
+            if c in delim_equal:  return self._accept(start, 170, "<=")
+            return self._error(start, _cannot_follow(c, "'<='", "delim_equal"))
 
         if state == 171:                                  # read ">"
             if c == "=":          return self._go(173)
-            if c in delim_equality:  return self._accept(start, 172, ">")         # 171 -> 172*
-            return self._error(start, _cannot_follow(c, "'>'", "delim_equality"))
+            if c in delim_oper:  return self._accept(start, 172, ">")
+            return self._error(start, _cannot_follow(c, "'>'", "delim_oper"))
         if state == 173:                                  # read ">="
-            if c in delim_equality:  return self._accept(start, 174, ">=")        # 173 -> 174*
-            return self._error(start, _cannot_follow(c, "'>='", "delim_equality"))
+            if c in delim_equal:  return self._accept(start, 174, ">=")
+            return self._error(start, _cannot_follow(c, "'>='", "delim_equal"))
 
         if state == 175:                                  # read "="
             if c == "=":          return self._go(177)
             if c in delim_equal:  return self._accept(start, 176, "=")         # 175 -> 176*
             return self._error(start, _cannot_follow(c, "'='", "delim_equal"))
         if state == 177:                                  # read "=="
-            if c in delim_equality:  return self._accept(start, 178, "==")        # 177 -> 178*
-            return self._error(start, _cannot_follow(c, "'=='", "delim_equality"))
+            if c in delim_equal:  return self._accept(start, 178, "==")
+            return self._error(start, _cannot_follow(c, "'=='", "delim_equal"))
 
         if state == 179:                                  # read "!"
             if c == "=":          return self._go(180)
             return self._error(start, f"'!' must be followed by '=' (found {_show(c)})")
         if state == 180:                                  # read "!="
-            if c in delim_equality:  return self._accept(start, 181, "!=")        # 180 -> 181*
-            return self._error(start, _cannot_follow(c, "'!='", "delim_equality"))
+            if c in delim_equal:  return self._accept(start, 181, "!=")
+            return self._error(start, _cannot_follow(c, "'!='", "delim_equal"))
 
         if state == 182:                                  # read "("
             if c in delim_openparen: return self._accept(start, 183, "(")     # 182 -> 183*
@@ -1042,7 +1119,7 @@ class Lexer:
             return self._error(start, _cannot_follow(c, "a flo literal", "delim_num"))
         raise AssertionError(f"unknown TD4 state {state}")
 
-    # ================================= TD5  String Literals and Comments 269-281 (+ supplemental 301-302)
+    # ================================= TD5  String Literals and Tilde Comments
     def _td5_strings_comments(self, state: int, c: str, start: int) -> int:
         # ---- strina literal in double quotes: 0 --"--> 269 ----
         if state == 269:                                  # inside "..."
@@ -1076,31 +1153,14 @@ class Lexer:
             if c in delim_sqclose or c == EOF: return self._accept(start, 274, STRINA_LIT)  # adj: eof may follow a closed string
             return self._error(start, _cannot_follow(c, "a strina literal", "delim_sqclose"))
 
-        # ---- single-line comment: 0 --'-'--> 141 --'-'--> 278 ----
-        if state == 275:                                  # read "--"
-            if c in {NEWLINE, EOF}:               return self._accept(start, 276, COMMENT_SL)   # 275 -> 276*
-            if c in delim_slcomment: return self._go(275)
-            if c == "/":                       return self._error(start, STRAY_CLOSER)
-            return self._error_inside(275, _not_ascii(c, "a comment"), self.pos)
-        # ---- multi-line comment: 0 --/--> 149 --'-'--> 153 --'-'--> 282 (comment transitions) ----
-        if state == 277:                                  # inside "/-- ..."
-            if c == "-":          return self._go(278)
-            if c in delim_mlcomment_open: return self._go(277)  # loop
-            if c == EOF:          return self._error(start, ML_UNTERMINATED)
-            return self._error_inside(277, _not_ascii(c, "a comment"), self.pos)
-        if state == 278:                                  # read "-" inside the comment
-            if c == "-":          return self._go(279)
-            if c in delim_mlcomment_open: return self._go(277)  # a lone "-" is comment text
-            if c == EOF:          return self._error(start, ML_UNTERMINATED)
-            return self._error_inside(277, _not_ascii(c, "a comment"), self.pos)
-        if state == 279:                                  # read "--" inside the comment
-            if c == "/":          return self._go(280)    # the first --/ closes the comment
-            if c == "-":          return self._go(279)    # "---/" still closes
-            if c in delim_mlcomment_open:   return self._go(277)    # "--x" is comment text
-            if c == EOF:          return self._error(start, ML_UNTERMINATED)
-            return self._error_inside(277, _not_ascii(c, "a comment"), self.pos)
-        if state == 280:                                  # read the closing "--/"
-            if c in delim_mlcomment_close: return self._accept(start, 281, COMMENT_ML)    # 280 -> 281*
-            return self._error(start, _cannot_follow(c, "'--/'", "delim_mlcomment_close"))
+        # ---- paired tilde comments: 0 --~--> 294, close with ~ ----
+        if state == 294:                                  # inside ~...~
+            if c == "~":          return self._go(295)
+            if c in comment_char: return self._go(294)
+            if c == EOF:          return self._accept(start, 297, COMMENT)
+            return self._error_inside(294, _not_ascii(c, "a comment"), self.pos)
+        if state == 295:                                  # read the closing ~
+            if c in delim_comments: return self._accept(start, 296, COMMENT)
+            return self._error(start, _cannot_follow(c, "a comment", "delim_comments"))
 
         raise AssertionError(f"unknown TD5 state {state}")
