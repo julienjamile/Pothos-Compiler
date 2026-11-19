@@ -11,6 +11,11 @@
 - 2026-11-20 lexical revision: added the five reserved words shown in the updated reserved-word image (`swil`, `cas`, `defal`, `repec`, `voia`) to the lexer reference list and TD1 handling. Applied the revised delimiter sheet to the corresponding character sets and accepting transitions; see D-011 and LEXER_AUDIT.md for details. The image uses `trua`; the reserved-word list, regular-expression list, delimiter sheet, and CFG use `truta`. The image is treated as primary for the lexical token spelling, so `truta` is recorded as an unresolved document inconsistency, not added as a second token. The symbol list has no clear new token; its `+=` token-label typo was not adopted because the image shows the augmented operator.
 - Read the new `Documentation/Transition Diagram in text.txt` as a search aid and checked it against the images. Its transcription contains apparent inconsistencies (`beliasa`/`belsa`, `insub`/`innum`, `trula`/`trua`, `void`/`voia`); the images remain the lexical reference as requested. Added the `\\{` and `\\}` string escapes shown in the updated strings image. Updated comments to use the image's tilde opener/closer, including its EOF edge. The CFG was inspected for context only; no parser or syntax code was changed.
 - Updated the original `backend/pothos/samples/` examples and added five focused `.pths` lexer examples covering revised reserved words, operators and delimiters, literals and escapes, comments and whitespace, and lexical errors. `samples/README.md` describes the coverage; these are lexer examples rather than syntax acceptance tests.
+- Frontend editor highlighting now takes its reserved-word, literal, symbol, delimiter, and valid-escape tables from the revised `frontend/language.json`; the five added words and `flo`/`inflo` are included, and obsolete `&&`, `||`, standalone `!`, dot, `true`/`false`, and null literal entries were removed. String escapes have a separate color; raw `{...}` placeholders are separately colored only inside a direct string argument to `formo(...)`. The escape spellings `\\{` and `\\}` remain escape-colored rather than placeholder-colored. This is editor presentation only; no lexer/parser behavior changed.
+- The deployed frontend is built into `dist/`, which is the directory served by Flask. The current build includes the revised highlighting bundle and favicon; an earlier isolated build did not update the page the application serves.
+- Follow-up configuration audit corrected stale comment metadata from `--` and `/--…--/` to the backend's paired `~…~` marker, changed the integer limit label to `maxSignificantDigits`, retained the documented function-name minimum, and updated the editor comment tokenizer to follow the configured tilde marker. The isolated frontend build succeeded again after this correction.
+- Added `logo_light.png` as the browser tab favicon in `frontend/index.html` and wired the served `dist/index.html` to the existing emitted asset with a cache-busting query; Flask serves `dist/` directly.
+- Fixed the custom escape and `formo` placeholder styles: CodeMirror now maps named stream tokens through its token table to the dedicated highlight tags. The prior code returned tag objects from the stream tokenizer, so those two colors could not be applied. `npm run build` completed successfully after the fix; Flask test-client checks confirmed the served page references the new bundle and returns that bundle and the favicon with HTTP 200.
 
 ## Current task
 
@@ -20,7 +25,7 @@
 ## Pending
 
 - Remaining P-05 lexer audit/regression tasks; D-006 and D-009 approved changes are implemented. The 2026-11-20 reserved-word and delimiter changes passed the updated lexer suite.
-- P-06 API/pipeline/frontend consistency audit.
+- P-06 API/pipeline/frontend consistency audit; the editor highlight tables are aligned, while API/pipeline contract checks remain.
 - P-09 syntax phase implementation.
 - P-11 semantic phase implementation.
 - P-12 integration and deliverable validation, including the paper's statement that the compiler produces an executable.

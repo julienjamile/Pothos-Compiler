@@ -3,12 +3,12 @@
   "fileExtension": ".pths",
   "caseSensitive": true,
   "keywords": [
-    "strina", "wharfa", "trua", "lis",
+    "strina", "wharfa", "flo", "inflo", "trua", "lis",
     "glossare","prin","inpub", "formo", "innum",
     "Trua", "Inaccu", "an", "othan", "neve",
     "belial", "belsa", "elsa", "lood","cycla",
     "paus", "persis", "reor", "deleo", "insid",
-    "const", "pas"
+    "const", "pas", "swil", "cas", "defal", "repec", "voia"
   ],
   "operators": {
     "arithmetic": ["+", "-", "*", "/", "%"],
@@ -18,9 +18,7 @@
     "membership": ["insid"]
   },
   "comments": {
-    "lineComment": "--",
-    "blockCommentStart": "/--",
-    "blockCommentEnd": "--/"
+    "pairedComment": "~"
   },
   "constraints": {
     "identifier": {
@@ -30,7 +28,7 @@
       "regex": "[a-zA-Z][a-zA-Z0-9_]*"
     },
     "wharfaLiteral": {
-      "maxDigits": 8,
+      "maxSignificantDigits": 8,
       "minValue": -99999999,
       "maxValue": 99999999
     },
@@ -63,11 +61,18 @@
       "deleo",
       "insid",
       "const",
-      "pas"
+      "pas",
+      "flo",
+      "inflo",
+      "swil",
+      "cas",
+      "defal",
+      "repec",
+      "voia"
     ],
     "literals": {
-      "booleans": ["true", "false"],
-      "null": ["null", "nil"]
+      "booleans": ["Trua", "Inaccu"],
+      "null": []
     },
     "symbols": [
       "+",
@@ -87,11 +92,7 @@
       "*=",
       "/=",
       "%=",
-      "&&",
-      "||",
-      "!",
-      ":",
-      "."
+      ":"
     ],
     "delimiters": {
       "separators": [",", ";", "(", ")", "[", "]", "{", "}"],
@@ -102,15 +103,12 @@
       ]
     },
     "comments": {
-      "line": "--",
-      "block": {
-        "open": "/--",
-        "close": "--/"
-      }
+      "paired": "~"
     },
     "strings": {
       "quotes": ["\"", "'"],
-      "escape": "\\"
+      "escape": "\\",
+      "validEscapes": ["\\\"", "\\'", "\\\\", "\\n", "\\t", "\\0", "\\{", "\\}"]
     }
   },
   "theme": {
@@ -119,6 +117,8 @@
     "delimiter": "#e5c07b",
     "string": "#98c379",
     "number": "#d19a66",
-    "comment": "#5c6370"
+    "comment": "#5c6370",
+    "stringEscape": "#e06c75",
+    "formatPlaceholder": "#61afef"
   }
 }

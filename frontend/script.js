@@ -2,7 +2,7 @@ import { basicSetup, EditorView } from "codemirror";
 import { Compartment, Prec } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
 import { HighlightStyle, StreamLanguage, syntaxHighlighting } from "@codemirror/language";
-import { tags } from "@lezer/highlight";
+import { tags, Tag } from "@lezer/highlight";
 import mireLanguage from "./language.json";
 import darkLogo from "./logo_dark.png";
 import lightLogo from "./logo_light.png";
@@ -74,58 +74,145 @@ resultTabs.forEach((tab, index) => {
 });
 
 const syntax = mireLanguage.syntax;
-const reservedWords = new Set([...syntax.reservedWords, "flo", "inflo"]);
+const reservedWords = new Set(syntax.reservedWords);
 const booleans = new Set(syntax.literals.booleans);
 const nullLiterals = new Set(syntax.literals.null);
-const symbolTokens = [...syntax.symbols, ...syntax.delimiters.separators]
+const symbolTokens = [...syntax.symbols]
     .sort((left, right) => right.length - left.length);
-const delimiterTokens = syntax.delimiters.pairs
+const delimiterTokens = [...syntax.delimiters.separators, ...syntax.delimiters.pairs
     .flatMap(({ open, close }) => [open, close])
-    .sort((left, right) => right.length - left.length);
+].sort((left, right) => right.length - left.length);
 const mireTheme = mireLanguage.theme;
+const stringEscapeTag = Tag.define(tags.string);
+const formatPlaceholderTag = Tag.define(tags.string);
 
 const mireLanguageSupport = StreamLanguage.define({
     name: mireLanguage.name.toLowerCase(),
-    startState: () => ({ inBlockComment: false }),
+    tokenTable: {
+        stringEscape: stringEscapeTag,
+        formatPlaceholder: formatPlaceholderTag,
+    },
+    startState: () => ({
+        inPairedComment: false,
+        inString: false,
+        stringQuote: null,
+        stringFormo: false,
+        formoPending: false,
+        formoStringAllowed: false,
+    }),
     token(stream, state) {
-        if (state.inBlockComment) {
-            if (stream.match(syntax.comments.block.close)) state.inBlockComment = false;
-            else stream.next();
+        const commentMarker = syntax.comments.paired;
+        if (state.inPairedComment) {
+            if (stream.skipTo(commentMarker)) {
+                stream.next();
+                state.inPairedComment = false;
+            } else {
+                stream.skipToEnd();
+            }
             return "comment";
         }
 
-        if (stream.eatSpace()) return null;
-        if (stream.match(syntax.comments.block.open)) {
-            state.inBlockComment = true;
-            return "comment";
+        if (state.inString) {
+            if (stream.peek() === state.stringQuote) {
+                stream.next();
+                state.inString = false;
+                state.stringQuote = null;
+                state.stringFormo = false;
+                return "string";
+            }
+            if (stream.peek() === syntax.strings.escape) {
+                const escape = stream.next() + (stream.next() ?? "");
+                if (stream.eol()) {
+                    state.inString = false;
+                    state.stringQuote = null;
+                    state.stringFormo = false;
+                }
+                return syntax.strings.validEscapes.includes(escape) ? "stringEscape" : "string";
+            }
+            if (state.stringFormo && stream.peek() === "{") {
+                stream.next();
+                while (!stream.eol() && stream.peek() !== "}") stream.next();
+                if (stream.peek() === "}") stream.next();
+                if (stream.eol()) {
+                    state.inString = false;
+                    state.stringQuote = null;
+                    state.stringFormo = false;
+                }
+                return "formatPlaceholder";
+            }
+            stream.eatWhile((character) => character !== state.stringQuote
+                && character !== syntax.strings.escape
+                && !(state.stringFormo && character === "{"));
+            if (stream.eol()) {
+                // Pothos strings cannot cross a physical newline.
+                state.inString = false;
+                state.stringQuote = null;
+                state.stringFormo = false;
+            }
+            return "string";
         }
-        if (stream.match(syntax.comments.line)) {
-            stream.skipToEnd();
+
+        if (stream.eatSpace()) return null;
+        if (stream.peek() === commentMarker) {
+            stream.next();
+            if (stream.skipTo(commentMarker)) stream.next();
+            else state.inPairedComment = true;
             return "comment";
         }
 
         const quote = syntax.strings.quotes.find((mark) => stream.match(mark, false));
         if (quote) {
             stream.match(quote);
-            while (!stream.eol()) {
-                const character = stream.next();
-                if (character === syntax.strings.escape) {
-                    if (!stream.eol()) stream.next();
-                } else if (character === quote) break;
-            }
+            state.inString = true;
+            state.stringQuote = quote;
+            state.stringFormo = state.formoStringAllowed;
+            state.formoStringAllowed = false;
+            state.formoPending = false;
             return "string";
         }
 
-        if (stream.match(/^(?:0[xX][\da-fA-F]+|0[bB][01]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)/)) return "number";
+        if (stream.match(/^(?:0[xX][\da-fA-F]+|0[bB][01]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)/)) {
+            state.formoStringAllowed = false;
+            state.formoPending = false;
+            return "number";
+        }
         if (stream.match(/^[\p{L}_][\p{L}\p{N}_]*/u, false)) {
             const word = stream.match(/^[\p{L}_][\p{L}\p{N}_]*/u)[0];
+            state.formoPending = word === "formo";
+            state.formoStringAllowed = false;
             if (booleans.has(word)) return "bool";
             if (nullLiterals.has(word)) return "null";
             return reservedWords.has(word) ? "keyword" : "variableName";
         }
 
-        if (stream.match(delimiterTokens.find((token) => stream.match(token, false)) || /$^/)) return "bracket";
-        if (stream.match(symbolTokens.find((token) => stream.match(token, false)) || /$^/)) return "operator";
+        if (stream.peek() === "(") {
+            stream.next();
+            if (state.formoPending) {
+                state.formoStringAllowed = true;
+            } else {
+                state.formoStringAllowed = false;
+            }
+            state.formoPending = false;
+            return "bracket";
+        }
+        if (stream.peek() === ")") {
+            stream.next();
+            state.formoStringAllowed = false;
+            state.formoPending = false;
+            return "bracket";
+        }
+        if (stream.match(delimiterTokens.find((token) => stream.match(token, false)) || /$^/)) {
+            state.formoStringAllowed = false;
+            state.formoPending = false;
+            return "bracket";
+        }
+        if (stream.match(symbolTokens.find((token) => stream.match(token, false)) || /$^/)) {
+            state.formoStringAllowed = false;
+            state.formoPending = false;
+            return "operator";
+        }
+        state.formoStringAllowed = false;
+        state.formoPending = false;
         stream.next();
         return null;
     },
@@ -136,6 +223,8 @@ const mireHighlightStyle = HighlightStyle.define([
     { tag: tags.operator, color: mireTheme.symbol },
     { tag: tags.bracket, color: mireTheme.delimiter },
     { tag: tags.string, color: mireTheme.string },
+    { tag: stringEscapeTag, color: mireTheme.stringEscape, fontWeight: "bold" },
+    { tag: formatPlaceholderTag, color: mireTheme.formatPlaceholder, fontWeight: "bold" },
     { tag: tags.number, color: mireTheme.number },
     { tag: tags.bool, color: mireTheme.reservedWord },
     { tag: tags.null, color: mireTheme.reservedWord },
